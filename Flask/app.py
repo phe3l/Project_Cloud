@@ -43,17 +43,16 @@ def fetch_location_data(ip):
         raise ValueError(f"Failed to get location data: HTTP {response.status_code}")
 
 """Fetch weather forecast data from OpenWeatherMap."""
-def fetch_weather_data(lat, lon):
-    url = f"http://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={OPENWEATHERMAP_API_KEY}&units=metric"
+def fetch_weather_data(lat, lon, current_weather=False):
+    if current_weather:
+        url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHERMAP_API_KEY}&units=metric" 
+    else:
+        url = f"http://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={OPENWEATHERMAP_API_KEY}&units=metric"
     response = requests.get(url)
     if response.status_code == 200:
         return response.json()
     else:
         raise ValueError(f"Failed to get weather data: HTTP {response.status_code}")
-
-
-
-
 
 
 @app.route('/send-to-bigquery', methods=['POST'])
@@ -78,8 +77,10 @@ def get_future_weather():
         location_data = fetch_location_data(ip)
         lat, lon = location_data['loc'].split(',')
         weather_data = fetch_weather_data(lat, lon)
+        current_weather = fetch_weather_data(lat, lon, current_weather=True)
 
-        return jsonify({"status": "success", "data": weather_data}), 200
+
+        return jsonify({"status": "success", "data": weather_data, "current_weather": current_weather}), 200
     except ValueError as ve:
         return jsonify({"status": "error", "message": str(ve)}), 400
     except Exception as e:
