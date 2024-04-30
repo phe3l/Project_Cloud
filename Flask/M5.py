@@ -5,6 +5,8 @@ import usocket as socket
 import time
 import unit
 import urequests
+import ntptime
+from machine import RTC
 
 screen = M5Screen()
 screen.clean_screen()
@@ -14,14 +16,19 @@ screen.set_screen_bg_color(0xd5d5d5)
 env3_0 = unit.get(unit.ENV3, unit.PORTA)
 
 # UI Labels for Temperature, Humidity, Weather Forecast, and IP
-Temp = M5Label('Temp:', x=19, y=82, color=0x000, font=FONT_MONT_22, parent=None)
-Humidity = M5Label('Humidity:', x=19, y=123, color=0x000, font=FONT_MONT_22, parent=None)
-temp_value_label = M5Label('T', x=163, y=82, color=0x000, font=FONT_MONT_22, parent=None)
-humidity_value_label = M5Label('H', x=158, y=123, color=0x000, font=FONT_MONT_22, parent=None)
-Forecast = M5Label('Forecast: Loading...', x=20, y=160, color=0x000, font=FONT_MONT_22, parent=None)
-IPLabel = M5Label('IP: Loading...', x=20, y=40, color=0x000, font=FONT_MONT_22, parent=None)
+IPLabel = M5Label('IP: Loading...', x=20, y=40, color=0x000, font=FONT_MONT_18, parent=None)
 
-wifi_credentials = [('TP-Link_76C4_5G', '49032826'),('iot-unil', '4u6uch4hpY9pJ2f9')]
+Temp = M5Label('Temp:', x=19, y=80, color=0x000, font=FONT_MONT_18, parent=None)
+temp_value_label = M5Label('T', x=163, y=80, color=0x000, font=FONT_MONT_18, parent=None)
+
+Humidity = M5Label('Humidity:', x=19, y=110, color=0x000, font=FONT_MONT_18, parent=None)
+humidity_value_label = M5Label('H', x=158, y=110, color=0x000, font=FONT_MONT_18, parent=None)
+
+
+Forecast = M5Label('Forecast: Loading...', x=20, y=160, color=0x000, font=FONT_MONT_18, parent=None)
+
+wifi_credentials = [('TP-Link_76C4', '49032826'),('iot-unil', '4u6uch4hpY9pJ2f9')]
+flask_url = "http://192.168.0.103:8080"
 
 def connect_wifi():
     wlan = network.WLAN(network.STA_IF)
@@ -40,6 +47,7 @@ def connect_wifi():
 
     IPLabel.set_text('Failed to connect to all networks.')
     return None
+
 
 def get_public_ip():
     try:
@@ -65,7 +73,8 @@ def update_sensor_readings():
 
 def get_forecast(ip):
     try:
-        response = urequests.post("http://192.168.0.103:8080/future-weather", json={"ip": ip})
+        url = "{}/future-weather".format(flask_url)  # Using .format() for string formatting
+        response = urequests.post(url, json={"ip": ip})
         if response.status_code == 200:
             forecast_data = response.json()
             display_forecast(forecast_data.get('data'))
@@ -93,7 +102,8 @@ def send_data(ip, outdoor_temp, outdoor_humidity):
         }
     }
     try:
-        response = urequests.post("http://192.168.0.103:8080/send-to-bigquery", json=data)
+        url = "{}/send-to-bigquery".format(flask_url)  # Using .format() for string formatting
+        response = urequests.post(url, json=data)
     except Exception as e:
         Forecast.set_text("Failed to send data: " + str(e))
     finally:
@@ -134,7 +144,7 @@ def main_loop():
                 if outdoor_temp is not None:
                     send_data(public_ip, outdoor_temp, outdoor_humidity)
             last_data_sent_time = time.ticks_ms()
-        
+
         time.sleep(1)  # Update sensor readings every second
 
 main_loop()

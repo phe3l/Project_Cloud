@@ -65,7 +65,6 @@ def send_to_bigquery():
         logging.error(f"Error inserting data into BigQuery: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-
 @app.route('/future-weather', methods=['POST'])
 def get_future_weather():
     try:
