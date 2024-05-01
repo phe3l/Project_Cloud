@@ -1,0 +1,27 @@
+# macOS system files
+.DS_Store
+
+# Python virtual environment
+venv/
+
+# Flask cache
+__pycache__/
+
+# Compiled Python files
+*.pyc
+
+# Logs
+*.log
+
+# GCP service account key file
+*.json
+
+# Environment variables
+.env
+
+# IDE files
+.idea/
+.vscode/
+
+# Dependency directories
+node_modules/
