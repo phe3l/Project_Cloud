@@ -2,10 +2,9 @@
 FROM python:3.11
 
 # Set the working directory in the container
-WORKDIR /service
+WORKDIR /service_app
 
-# Copy the current directory contents into the container at /app
-COPY ./service /service
+COPY . /service_app
 
 # Install any needed packages specified in requirements.txt
 COPY requirements.txt /app/requirements.txt
