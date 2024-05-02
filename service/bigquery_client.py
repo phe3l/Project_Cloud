@@ -1,14 +1,14 @@
 from google.cloud import bigquery
 from google.cloud.exceptions import GoogleCloudError
-import datetime
+import datetime, os
 
-PROJECT_ID = "weather-project-421218"
-DATASET_NAME = "weather_dataset" 
-WEATHER_TABLE = "weather-records"
+PROJECT_ID = os.getenv('PROJECT_ID')
+DATASET_NAME = os.getenv('DATASET_NAME') 
+WEATHER_TABLE = os.getenv('WEATHER_TABLE')
 
 class BigQueryClient:
     def __init__(self):
-        self.client = bigquery.Client(project=PROJECT_ID)
+        self.client = bigquery.Client(project=os.getenv('PROJECT_ID'))
         
     """Insert data into BigQuery."""
     def insert_into_bigquery(self, data: dict):
