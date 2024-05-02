@@ -5,7 +5,7 @@ import os
 class ServiceTestCloudRun(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.base_url = os.getenv('CLOUD_RUN_URL')
+        cls.base_url = os.getenv('SERVICE_CLOUD_RUN_URL')
 
     def test_insert_weather(self):
         # Test sending data to BigQuery via Cloud Run
