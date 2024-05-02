@@ -16,6 +16,10 @@ text_to_speech_client = TextToSpeechClient()
 logging.basicConfig(level=logging.INFO)
 TMP_DIR = '/tmp'
 
+@app.route('/')
+def home():
+    return "The service is up and running!"
+
 @app.route('/send-to-bigquery', methods=['POST'])
 def insert_weather():
     try:
