@@ -7,6 +7,9 @@ import unit
 import urequests
 import ntptime
 from machine import RTC
+from libs.image_plus import *
+
+
 
 screen = M5Screen()
 screen.clean_screen()
@@ -30,7 +33,7 @@ outdoor_hum_label = M5Label('Outdoor Humidity.', x=20, y=150, color=0x000)
 
 # WiFi credentials for connecting to the network
 wifi_credentials = [('TP-Link_76C4', '49032826'),('iot-unil', '4u6uch4hpY9pJ2f9')]
-flask_url = "http://192.168.0.103:8080"
+flask_url = "http://130.223.239.227:8080"
 
 def connect_wifi(wifi_credentials):
     wlan = network.WLAN(network.STA_IF)
@@ -102,7 +105,7 @@ def update_display():
     current_weather = get_current_weather(get_public_ip())
     outdoor_hum_label.set_text('Outdoor Temp: {:.2f} C'.format(current_weather[0]))
     outdoor_temp_label.set_text('Outdoor Humidity: {:.2f} %'.format(current_weather[1]))
-    imageplus0 = M5ImagePlus(200, 140, url='http://openweathermap.org/img/w/{}.png'.format(current_weather[1]), timer=True, interval=3000)
+    imageplus0 = M5ImagePlus(200, 140, url='http://openweathermap.org/img/w/{}.png'.format(current_weather[2]), timer=True, interval=3000)
 
 
 while True:
