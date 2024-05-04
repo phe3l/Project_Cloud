@@ -39,6 +39,7 @@ wifi_credentials = [('TP-Link_76C4', '49032826'),('iot-unil', '4u6uch4hpY9pJ2f9'
 flask_url = "http://192.168.0.103:8080"
 
 public_ip = None
+motion_last_state = 0
 
 
 def connect_wifi(wifi_credentials):
@@ -151,18 +152,23 @@ def get_weather_spoken(ip):
     url = "{}/generate-current-weather-spoken".format(flask_url)
     response = urequests.post(url, json={"ip": ip})
     if response.status_code == 200:
-        with open('/flash/weather.mp3', 'wb') as f:
+        with open('weather.wav', 'wb') as f:
             f.write(response.content)
         response.close()
+        return True
     else:
         print("Failed to fetch spoken weather: HTTP " + str(response.status_code))
+        return False
 
 def play_weather_spoken():
-    #speaker.setVolume(1)
-    speaker.playMp3("/flash/weather.mp3")
+    speaker.playWAV('weather.wav', volume=6)
+
+
+
 
 # Function to update sensor values and PIR state on the display
 def update_sensor_display():
+    global motion_last_state
     env3_temp = env3_0.temperature 
     env3_hum = env3_0.humidity 
     gas_value = gas_unit.TVOC
@@ -172,9 +178,11 @@ def update_sensor_display():
     gas_label.set_text('Gas TVOC: {} ppb'.format(gas_value))
     motion_label.set_text('Motion Detected: ' + motion_detected)
 
-    if motion_detected == "Yes":
-        get_weather_spoken(public_ip)
-        play_weather_spoken()
+    if pir_sensor.state == 1 and motion_last_state == 0:
+        if get_weather_spoken(public_ip):
+            play_weather_spoken()
+
+    motion_last_state = pir_sensor.state  # Mettez à jour motion_last_state avec l'état actuel
 
 def update_api_display(current_weather):
     outdoor_hum_label.set_text('Outdoor Temp: {:.2f} C'.format(current_weather[0]))

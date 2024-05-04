@@ -94,11 +94,15 @@ def generate_current_weather_spoken():
         description = vertex_ai_client.get_weather_description(str(current_weather))
         voice_data = text_to_speech_client.generate_speech(description)
         
-        temp_file = os.path.join(TMP_DIR, 'output.mp3')
+        #temp_file = os.path.join(TMP_DIR, 'output.mp3')
+        temp_file = os.path.join(TMP_DIR, 'weather_output.wav')
+
         with open(temp_file, 'wb') as audio_file:
             audio_file.write(voice_data)
         
-        return send_file(temp_file, as_attachment=True, mimetype='audio/mp3')
+        #return send_file(temp_file, as_attachment=True, mimetype='audio/mp3')
+        return send_file(temp_file, mimetype='audio/wav')
+
     except Exception as e:
         logging.error(f"Error generating spoken weather description: {e}")
         return jsonify({"error": str(e)}), 500
@@ -128,8 +132,7 @@ def generate_weather_spoken_from_text():
         logging.error(f"Error generating spoken weather description: {e}")
         return jsonify({"error": str(e)}), 500
     
-    
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)
-
 
