@@ -9,7 +9,9 @@ import ntptime
 from machine import RTC
 from libs.image_plus import *
 import utime
-
+from m5stack import speaker
+import socket
+import struct
 
 screen = M5Screen()
 screen.clean_screen()
@@ -54,9 +56,6 @@ def connect_wifi(wifi_credentials):
         wlan.disconnect()
     return None
 
-
-
-
 # Function to get the public IP address of the device
 def get_public_ip():
     global public_ip
@@ -90,9 +89,6 @@ def get_current_weather(ip):
         if response:
             response.close()
 
-import socket
-import struct
-
 def get_ntp_time(host):
     NTP_DELTA = 3155673600  # 1900-01-01 00:00:00 to 2000-01-01 00:00:00
     NTP_QUERY = b'\x1b' + 47 * b'\0'
@@ -111,7 +107,7 @@ def get_current_time():
     ntp_time = get_ntp_time('ch.pool.ntp.org')  # Serveur NTP pour la Suisse
 
     # Ajoutez le décalage horaire (2 heures en standard, 3 heures en heure d'été)
-    ntp_time += 2 * 3600  # Changez cela en 3 * 3600 si vous êtes en heure d'été
+    ntp_time += 2 * 3600
 
     # Convertissez l'heure NTP en heure locale
     local_time = utime.localtime(ntp_time)
@@ -126,7 +122,6 @@ def get_current_time():
 
 
 def send_data(ip, outdoor_temp, outdoor_humidity):
-    # Obtenez l'heure et la date actuelles
     local_time = utime.localtime()
     date = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
     time = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
@@ -152,6 +147,20 @@ def send_data(ip, outdoor_temp, outdoor_humidity):
         if response:
             response.close()
 
+def get_weather_spoken(ip):
+    url = "{}/generate-current-weather-spoken".format(flask_url)
+    response = urequests.post(url, json={"ip": ip})
+    if response.status_code == 200:
+        with open('/flash/weather.mp3', 'wb') as f:
+            f.write(response.content)
+        response.close()
+    else:
+        print("Failed to fetch spoken weather: HTTP " + str(response.status_code))
+
+def play_weather_spoken():
+    #speaker.setVolume(1)
+    speaker.playMp3("/flash/weather.mp3")
+
 # Function to update sensor values and PIR state on the display
 def update_sensor_display():
     env3_temp = env3_0.temperature 
@@ -162,6 +171,10 @@ def update_sensor_display():
     env3_hum_label.set_text('ENV3 Humidity: {:.2f} %'.format(env3_hum))
     gas_label.set_text('Gas TVOC: {} ppb'.format(gas_value))
     motion_label.set_text('Motion Detected: ' + motion_detected)
+
+    if motion_detected == "Yes":
+        get_weather_spoken(public_ip)
+        play_weather_spoken()
 
 def update_api_display(current_weather):
     outdoor_hum_label.set_text('Outdoor Temp: {:.2f} C'.format(current_weather[0]))
@@ -191,7 +204,7 @@ def main_loop():
         else:
             IPLabel.set_text('Failed to connect to WiFi')
             public_ip = None  # Réinitialisez l'IP publique si la connexion échoue
-        time.sleep(1)
+        time.sleep(5)
 
 # Assurez-vous d'appeler main_loop() pour démarrer la boucle
 main_loop()
