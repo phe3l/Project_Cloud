@@ -1,16 +1,14 @@
 from m5stack_ui import *
 from uiflow import *
 import network
-import usocket as socket
+import socket
 import time
 import unit
 import urequests
-import ntptime
 from machine import RTC
 from libs.image_plus import *
 import utime
 from m5stack import speaker
-import socket
 import struct
 
 screen = M5Screen()
@@ -38,9 +36,15 @@ outdoor_hum_label = M5Label('Outdoor Humidity.', x=20, y=150, color=0x000)
 wifi_credentials = [('TP-Link_76C4', '49032826'),('iot-unil', '4u6uch4hpY9pJ2f9')]
 flask_url = "http://192.168.0.103:8080"
 
+# Constantes
+NTP_DELTA = 3155673600  # 1900-01-01 00:00:00 to 2000-01-01 00:00:00
+NTP_QUERY = b'\x1b' + 47 * b'\0'
+NTP_SERVER = 'ch.pool.ntp.org'  # Serveur NTP pour la Suisse
+TIMEZONE_OFFSET = 2 * 3600  # Décalage horaire (2 heures en standard, 3 heures en heure d'été)
 public_ip = None
 motion_last_state = 0
-
+audio_playing = False  # Utilisé pour empêcher la répétition des appels audio
+last_audio_time = 0  # Temps du dernier appel audio
 
 def connect_wifi(wifi_credentials):
     wlan = network.WLAN(network.STA_IF)
@@ -49,6 +53,8 @@ def connect_wifi(wifi_credentials):
         return wlan
     for ssid, password in wifi_credentials:
         wlan.connect(ssid, password)
+        # Ajoutez un délai ici pour donner à la connexion Wi-Fi le temps de s'établir
+        time.sleep(5)
         start_time = time.time()
         while not wlan.isconnected() and time.time() - start_time < 10:
             time.sleep(1)
@@ -67,6 +73,9 @@ def get_public_ip():
         IPLabel.set_text('Public IP: ' + public_ip)
     except Exception as e:
         IPLabel.set_text('Connection error: ' + str(e))
+    finally:
+        if response:
+            response.close()
 
 
 def get_current_weather(ip):
@@ -91,8 +100,6 @@ def get_current_weather(ip):
             response.close()
 
 def get_ntp_time(host):
-    NTP_DELTA = 3155673600  # 1900-01-01 00:00:00 to 2000-01-01 00:00:00
-    NTP_QUERY = b'\x1b' + 47 * b'\0'
     addr = socket.getaddrinfo(host, 123)[0][-1]
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -105,10 +112,10 @@ def get_ntp_time(host):
 
 def get_current_time():
     # Obtenez l'heure NTP
-    ntp_time = get_ntp_time('ch.pool.ntp.org')  # Serveur NTP pour la Suisse
+    ntp_time = get_ntp_time(NTP_SERVER)
 
-    # Ajoutez le décalage horaire (2 heures en standard, 3 heures en heure d'été)
-    ntp_time += 2 * 3600
+    # Ajoutez le décalage horaire
+    ntp_time += TIMEZONE_OFFSET
 
     # Convertissez l'heure NTP en heure locale
     local_time = utime.localtime(ntp_time)
@@ -134,7 +141,7 @@ def send_data(ip, outdoor_temp, outdoor_humidity):
             "ip_address": ip,
             "outdoor_temp": outdoor_temp,
             "outdoor_humidity": outdoor_humidity,
-            "indoor_air_quality": gas_unit.TVOC,
+            "indoor_air_quality": gas_unit.TVOC,  
             "date": date,
             "time": time
         }
@@ -148,41 +155,52 @@ def send_data(ip, outdoor_temp, outdoor_humidity):
         if response:
             response.close()
 
-def get_weather_spoken(ip):
-    url = "{}/generate-current-weather-spoken".format(flask_url)
-    response = urequests.post(url, json={"ip": ip})
-    if response.status_code == 200:
-        with open('weather.wav', 'wb') as f:
-            f.write(response.content)
-        response.close()
-        return True
-    else:
-        print("Failed to fetch spoken weather: HTTP " + str(response.status_code))
+def play_weather_spoken(ip):
+    global audio_playing, last_audio_time
+    current_time = time.time()
+    # Vérifier si l'audio a été joué il y a moins de 30 secondes
+    if audio_playing or (current_time - last_audio_time < 30):
+        print("Audio is already playing or was played recently.")
         return False
 
-def play_weather_spoken():
-    speaker.playWAV('weather.wav', volume=6)
+    audio_playing = True
+    last_audio_time = current_time
+    url = "{}/generate-current-weather-spoken2?ip={}".format(flask_url, ip)
+    try:
+        response = urequests.get(url)
+        if response.status_code == 200:
+            #speaker.playCloudWAV(url, volume=6)
+            print("Audio started successfully.")
+            return True
+        else:
+            print("Failed to fetch spoken weather: HTTP", response.status_code)
+            return False
+    except Exception as e:
+        print("Error during audio streaming:", e)
+        return False
+    finally:
+        response.close()
+        audio_playing = False
 
-
-
-
-# Function to update sensor values and PIR state on the display
 def update_sensor_display():
-    global motion_last_state
+    global motion_last_state, last_audio_time
     env3_temp = env3_0.temperature 
     env3_hum = env3_0.humidity 
     gas_value = gas_unit.TVOC
-    motion_detected = "Yes" if pir_sensor.state == 1 else "No"  # Check if motion is detected
+    current_motion_state = pir_sensor.state
+    motion_detected = "Yes" if current_motion_state == 1 else "No"
     env3_temp_label.set_text('ENV3 Temp: {:.2f} C'.format(env3_temp))
     env3_hum_label.set_text('ENV3 Humidity: {:.2f} %'.format(env3_hum))
     gas_label.set_text('Gas TVOC: {} ppb'.format(gas_value))
     motion_label.set_text('Motion Detected: ' + motion_detected)
 
-    if pir_sensor.state == 1 and motion_last_state == 0:
-        if get_weather_spoken(public_ip):
-            play_weather_spoken()
+    if current_motion_state == 1 and motion_last_state == 0:
+        play_weather_spoken(public_ip)
+        motion_last_state = current_motion_state  # Mettre à jour l'état du mouvement seulement après un appel audio
+    elif current_motion_state == 0:
+        motion_last_state = 0  # Réinitialiser l'état si aucun mouvement n'est détecté
 
-    motion_last_state = pir_sensor.state  # Mettez à jour motion_last_state avec l'état actuel
+
 
 def update_api_display(current_weather):
     outdoor_hum_label.set_text('Outdoor Temp: {:.2f} C'.format(current_weather[0]))
@@ -204,10 +222,11 @@ def main_loop():
             get_current_time()
             if time.time() - api_last_update > 300:
                 current_weather = get_current_weather(public_ip)
-                update_api_display(current_weather)
-                api_last_update = time.time()
+                if current_weather is not None:  # Vérifiez que current_weather n'est pas None avant de l'utiliser
+                    update_api_display(current_weather)
+                    api_last_update = time.time()
 
-                send_data(public_ip, current_weather[0], current_weather[1])
+                    send_data(public_ip, current_weather[0], current_weather[1])
 
         else:
             IPLabel.set_text('Failed to connect to WiFi')
@@ -216,3 +235,5 @@ def main_loop():
 
 # Assurez-vous d'appeler main_loop() pour démarrer la boucle
 main_loop()
+
+
