@@ -107,6 +107,37 @@ def generate_current_weather_spoken():
         logging.error(f"Error generating spoken weather description: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/generate-current-weather-spoken2', methods=['GET'])
+def generate_current_weather_spoken2():
+    ip = request.args.get('ip', '').strip()
+    if not ip:
+        return jsonify({"error": "IP address is required"}), 400
+
+    try:
+        # Fetch location data using the IP address
+        location_data = weather_client.fetch_location_data(ip)
+        lat, lon = location_data['loc'].split(',')
+        
+        # Fetch current weather using the latitude and longitude
+        current_weather = weather_client.fetch_weather_data(lat, lon, current_weather=True)
+        
+        # Generate a spoken description of the current weather
+        description = vertex_ai_client.get_weather_description(str(current_weather))
+        voice_data = text_to_speech_client.generate_speech(description)
+        
+        temp_file = os.path.join(TMP_DIR, 'weather_output.wav')
+
+        with open(temp_file, 'wb') as audio_file:
+            audio_file.write(voice_data)
+        
+        # Return the generated WAV file as a downloadable file
+        return send_file(temp_file, mimetype='audio/wav', as_attachment=False, download_name=None)
+
+    except Exception as e:
+        logging.error(f"Error generating spoken weather description: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 
 @app.route('/generate-weather-spoken-from-text', methods=['POST'])
 def generate_weather_spoken_from_text():
