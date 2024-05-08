@@ -38,7 +38,7 @@ outdoor_hum_label = M5Label('', x=254, y=148, color=0x000, font=FONT_MONT_14, pa
     
 label7 = M5Label("Tomorrow's forecast: Update...", x=15, y=175, color=0x000, font=FONT_MONT_14, parent=None)
 
-label8 = M5Label('', x=220, y=195, color=0x000, font=FONT_MONT_22, parent=None)
+label8 = M5Label('', x=225, y=200, color=0x000, font=FONT_MONT_22, parent=None)
 label9 = M5Label('', x=108, y=196, color=0x000, font=FONT_MONT_14, parent=None)
 label10 = M5Label('', x=108, y=218, color=0x000, font=FONT_MONT_14, parent=None)
 
@@ -163,6 +163,40 @@ def get_future_weather(ip):
         if response:
             response.close()  # Assurez-vous de fermer la réponse après traitement
 
+def send_data(ip, outdoor_temp, outdoor_humidity):
+    # Get the current local time
+    local_time = utime.localtime()
+
+    # Format the date and time
+    date = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
+    time = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
+
+    # Prepare the data to be sent
+    data = {
+        "values": {
+            "indoor_temp": env3_0.temperature,
+            "indoor_humidity": env3_0.humidity,
+            "ip_address": ip,
+            "outdoor_temp": outdoor_temp,
+            "outdoor_humidity": outdoor_humidity,
+            "indoor_air_quality": gas_unit.TVOC,  
+            "date": date,
+            "time": time
+        }
+    }
+
+    response = None
+    try:
+        # Send the data to BigQuery
+        url = "{}/send-to-bigquery".format(flask_url)
+        response = urequests.post(url, json=data)
+    except Exception as e:
+        # Print any errors that occur
+        print("Failed to send data to BigQuery:", str(e))
+    finally:
+        # Close the response if it was opened
+        if response:
+            response.close()
 
 
 def update_sensor_display():
@@ -176,13 +210,18 @@ def update_sensor_display():
 def update_api_display(current_weather, futur_weather):
     outdoor_temp_label.set_text('{:.2f} °C'.format(current_weather[0]))
     outdoor_hum_label.set_text('{:.2f} %'.format(current_weather[1]))
-    image0 = M5ImagePlus(155, 0, url='https://openweathermap.org/img/w/{}.png'.format(current_weather[2]), timer=False, interval=3000)
+    image0 = M5Img('res/{}.png'.format(current_weather[2]), x=155, y=0)
 
     label7.set_text("Tomorrow's forecast:")
-    image1 = M5ImagePlus(0, 150, url='https://openweathermap.org/img/w/{}.png'.format(futur_weather[1]), timer=False, interval=3000)
+    image1 = M5Img('res/{}.png'.format(futur_weather[1]), x=0, y=190)
     label8.set_text('{:.2f} °C'.format(futur_weather[0]))
     label9.set_text('{}'.format(futur_weather[2]))
-    label10.set_text('{}'.format(futur_weather[2]))
+    label10.set_text('{}'.format(futur_weather[3]))
+
+    #TEST
+    #image_url = 'https://openweathermap.org/img/wn/{}.png'.format(current_weather[2])
+    #label80 = M5Label('{}:{}'.format(image_url), x=0, y=125, color=0x000, font=FONT_MONT_10, parent=None)
+
 
 # Fonction pour démarrer la boucle principale
 def main_loop():
@@ -190,34 +229,39 @@ def main_loop():
     
     api_last_update = time.time() - 300  # Force immediate update at start
     time_last_update = time.time() - 60  # Force immediate time update at start
+    data_last_sent = time.time() - 120  # Initialiser pour forcer l'envoi immédiat des données
 
     while True:
-        # Utilisez l'IP publique pour d'autres opérations ici, si nécessaire
+        now = time.time()
         update_sensor_display()
         
         wlan = connect_wifi(wifi_credentials)
         if wlan:
-            if public_ip is None:  # Obtient l'IP publique seulement si nécessaire
+            if public_ip is None:
                 get_public_ip()
             
-            if time.time() - time_last_update > 60:  # Check if a minute has passed
+            if now - time_last_update > 60:
                 get_current_time()
-                time_last_update = time.time()  # Update the last update time
+                time_last_update = now
 
-            if time.time() - api_last_update > 300:
+            if now - api_last_update > 300:
                 current_weather = get_current_weather(public_ip)
                 futur_weather = get_future_weather(public_ip)
-                if current_weather is not None:  # Vérifiez que current_weather n'est pas None avant de l'utiliser
+                if current_weather and futur_weather:
                     label4.set_text('Outdoor Information:')
-
                     update_api_display(current_weather, futur_weather)
-                    api_last_update = time.time()
+                    api_last_update = now
+
+            if now - data_last_sent > 120:
+                send_data(public_ip, current_weather[0], current_weather[1] if current_weather else None)
+                data_last_sent = now
         else:
             wifi_label.set_text('No Wi-Fi')
-            public_ip = None  # Réinitialisez l'IP publique si la connexion échoue
-        time.sleep(5)
+            public_ip = None
 
-# Assurez-vous d'appeler main_loop() pour démarrer la boucle
+        # Calculez le temps nécessaire pour dormir, assurez-vous qu'il ne soit pas négatif
+        next_action = min(time_last_update + 60, api_last_update + 300, data_last_sent + 120)
+        sleep_time = max(0, next_action - now)
+        time.sleep(sleep_time)
+
 main_loop()
-
-
