@@ -10,6 +10,7 @@ from libs.image_plus import *
 import utime
 from m5stack import speaker
 import struct
+import utime
 
 screen = M5Screen()
 screen.clean_screen()
@@ -23,14 +24,25 @@ pir_sensor = unit.get(unit.PIR, unit.PORTB)
 gas_unit = unit.get(unit.TVOC, unit.PORTC)
 
 # Create labels to display sensor values
-IPLabel = M5Label('IP: Loading...', x=20, y=0, color=0x000)
-env3_temp_label = M5Label('ENV3 Temp: ', x=20, y=30, color=0x000)
-env3_hum_label = M5Label('ENV3 Humidity: ', x=20, y=50, color=0x000)
-gas_label = M5Label('Gas TVOC: ', x=20, y=70, color=0x000)
-motion_label = M5Label('Motion Detected: No', x=20, y=90, color=0x000)
-date_time_label = M5Label('Date & Time: Loading...', x=20, y=110, color=0x000)
-outdoor_temp_label = M5Label('Outdoor Temp:', x=20, y=130, color=0x000)
-outdoor_hum_label = M5Label('Outdoor Humidity.', x=20, y=150, color=0x000)
+datetime_label = M5Label('0000/00/00 - 00:00', x=15, y=0, color=0x000000, font=FONT_MONT_14, parent=None)
+wifi_label = M5Label('.....', x=262, y=0, color=0x000000, font=FONT_MONT_14, parent=None)
+env3_temp_label = M5Label('00.00 °C', x=15, y=33, color=0x000, font=FONT_MONT_34, parent=None)
+image0 = M5Img("res/base.png", x=155, y=0, parent=None)
+env3_hum_label = M5Label('Humidity: 00.00%', x=15, y=86, color=0x000, font=FONT_MONT_14, parent=None)
+gas_label = M5Label('Gas TVOC: 0ppb', x=15, y=107, color=0x000, font=FONT_MONT_14, parent=None)
+
+line0 = M5Line(x1=15, y1=135, x2=305, y2=135, color=0x000, width=1, parent=None)
+label4 = M5Label('Outdoor Information: Update...', x=15, y=148, color=0x000, font=FONT_MONT_14, parent=None)
+outdoor_temp_label = M5Label('', x=185, y=148, color=0x000, font=FONT_MONT_14, parent=None)
+outdoor_hum_label = M5Label('', x=254, y=148, color=0x000, font=FONT_MONT_14, parent=None)
+    
+label7 = M5Label("Tomorrow's forecast: Update...", x=15, y=175, color=0x000, font=FONT_MONT_14, parent=None)
+
+label8 = M5Label('', x=220, y=195, color=0x000, font=FONT_MONT_22, parent=None)
+label9 = M5Label('', x=108, y=196, color=0x000, font=FONT_MONT_14, parent=None)
+label10 = M5Label('', x=108, y=218, color=0x000, font=FONT_MONT_14, parent=None)
+
+
 
 # WiFi credentials for connecting to the network
 wifi_credentials = [('TP-Link_76C4', '49032826'),('iot-unil', '4u6uch4hpY9pJ2f9')]
@@ -42,9 +54,6 @@ NTP_QUERY = b'\x1b' + 47 * b'\0'
 NTP_SERVER = 'ch.pool.ntp.org'  # NTP server for Switzerland
 TIMEZONE_OFFSET = 2 * 3600  # Timezone offset (2 hours standard, 3 hours daylight saving time)
 public_ip = None
-motion_last_state = 0
-audio_playing = False  # Used to prevent repeating audio calls
-last_audio_time = 0  # Time of the last audio call
 
 # Function to connect to WiFi using provided credentials
 def connect_wifi(wifi_credentials):
@@ -69,7 +78,6 @@ def connect_wifi(wifi_credentials):
     else:
         return None
 
-
 # Function to get the public IP address of the device
 def get_public_ip():
     global public_ip
@@ -77,9 +85,9 @@ def get_public_ip():
         response = urequests.get('http://api.ipify.org/?format=text')
         public_ip = response.text
         response.close()
-        IPLabel.set_text('Public IP: ' + public_ip)
+        wifi_label.set_text('Wi-Fi')
     except Exception as e:
-        IPLabel.set_text('Connection error: ' + str(e))
+        wifi_label.set_text('No Wi-Fi')
     finally:
         if response:
             response.close()
@@ -104,7 +112,11 @@ def get_current_time():
     rtc = RTC()
     rtc.datetime((local_time[0], local_time[1], local_time[2], 0, local_time[3], local_time[4], local_time[5], 0))
     # Update the label text with the time and date
-    date_time_label.set_text('Date & Time: {}/{}/{} {}:{}'.format(local_time[0], local_time[1], local_time[2], local_time[3], local_time[4]))
+    datetime_label.set_text('{}/{}/{} - {}:{}'.format(local_time[0], local_time[1], local_time[2], local_time[3], local_time[4]))
+    
+    # Convert the local time tuple back to UNIX timestamp and return it
+    #unix_timestamp = utime.mktime(local_time)
+    # return unix_timestamp
 
 def get_current_weather(ip):
     response = None  # Initialiser response ici pour garantir qu'elle est définie avant le bloc try
@@ -118,136 +130,90 @@ def get_current_weather(ip):
             icon_code = weather_data['weather'][0]['icon']
             return outdoor_temp, outdoor_humidity, icon_code
         else:
-            outdoor_temp_label.set_text("Weather fetch failed: HTTP " + str(response.status_code))
             return None
     except Exception as e:
-        outdoor_temp_label.set_text("Failed to fetch weather: " + str(e))
         return None
     finally:
         if response:
             response.close()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def send_data(ip, outdoor_temp, outdoor_humidity):
-    local_time = utime.localtime()
-    date = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
-    time = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
-
-    data = {
-        "values": {
-            "indoor_temp": env3_0.temperature,
-            "indoor_humidity": env3_0.humidity,
-            "ip_address": ip,
-            "outdoor_temp": outdoor_temp,
-            "outdoor_humidity": outdoor_humidity,
-            "indoor_air_quality": gas_unit.TVOC,  
-            "date": date,
-            "time": time
-        }
-    }
+def get_future_weather(ip):
+    response = None
     try:
-        url = "{}/send-to-bigquery".format(flask_url)
-        response = urequests.post(url, json=data)
+        url = "{}/future-weather".format(flask_url)  # Assurez-vous que flask_url est défini quelque part dans votre code
+        response = urequests.post(url, json={"ip": ip})
+        if response.status_code == 200:
+            weather_data = response.json()
+            # Obtenir directement le 8ème objet de la liste des prévisions
+            if len(weather_data['list']) >= 8:  # Vérifiez si la liste contient au moins 8 objets
+                eighth_entry = weather_data['list'][7]  # L'indexation commence à 0, donc 7 représente le 8ème objet
+                future_temp = eighth_entry['main']['temp']
+                icon_code = eighth_entry['weather'][0]['icon']
+                weather_main = eighth_entry['weather'][0]['main']
+                weather_description = eighth_entry['weather'][0]['description']
+                return future_temp, icon_code, weather_main, weather_description  # Retourner les informations demandées
+            else:
+                return None, None, None, None  # Si la liste contient moins de 8 éléments
+        else:
+            return None, None, None, None
     except Exception as e:
-        print("Failed to send data to BigQuery:", str(e))
+        print("Error while fetching future weather:", str(e))
+        return None, None, None, None
     finally:
         if response:
-            response.close()
+            response.close()  # Assurez-vous de fermer la réponse après traitement
 
-def play_weather_spoken(ip):
-    global audio_playing, last_audio_time
-    current_time = time.time()
-    # Vérifier si l'audio a été joué il y a moins de 30 secondes
-    if audio_playing or (current_time - last_audio_time < 30):
-        print("Audio is already playing or was played recently.")
-        return False
 
-    audio_playing = True
-    last_audio_time = current_time
-    url = "{}/generate-current-weather-spoken2?ip={}".format(flask_url, ip)
-    try:
-        response = urequests.get(url)
-        if response.status_code == 200:
-            #speaker.playCloudWAV(url, volume=6)
-            print("Audio started successfully.")
-            return True
-        else:
-            print("Failed to fetch spoken weather: HTTP", response.status_code)
-            return False
-    except Exception as e:
-        print("Error during audio streaming:", e)
-        return False
-    finally:
-        response.close()
-        audio_playing = False
 
 def update_sensor_display():
-    global motion_last_state, last_audio_time
     env3_temp = env3_0.temperature 
     env3_hum = env3_0.humidity 
     gas_value = gas_unit.TVOC
-    current_motion_state = pir_sensor.state
-    motion_detected = "Yes" if current_motion_state == 1 else "No"
-    env3_temp_label.set_text('ENV3 Temp: {:.2f} C'.format(env3_temp))
-    env3_hum_label.set_text('ENV3 Humidity: {:.2f} %'.format(env3_hum))
+    env3_temp_label.set_text('{:.2f} °C'.format(env3_temp))
+    env3_hum_label.set_text('Humidity: {:.2f} %'.format(env3_hum))
     gas_label.set_text('Gas TVOC: {} ppb'.format(gas_value))
-    motion_label.set_text('Motion Detected: ' + motion_detected)
 
-    if current_motion_state == 1 and motion_last_state == 0:
-        play_weather_spoken(public_ip)
-        motion_last_state = current_motion_state  # Mettre à jour l'état du mouvement seulement après un appel audio
-    elif current_motion_state == 0:
-        motion_last_state = 0  # Réinitialiser l'état si aucun mouvement n'est détecté
+def update_api_display(current_weather, futur_weather):
+    outdoor_temp_label.set_text('{:.2f} °C'.format(current_weather[0]))
+    outdoor_hum_label.set_text('{:.2f} %'.format(current_weather[1]))
+    image0 = M5ImagePlus(155, 0, url='https://openweathermap.org/img/w/{}.png'.format(current_weather[2]), timer=False, interval=3000)
 
-
-
-def update_api_display(current_weather):
-    outdoor_hum_label.set_text('Outdoor Temp: {:.2f} C'.format(current_weather[0]))
-    outdoor_temp_label.set_text('Outdoor Humidity: {:.2f} %'.format(current_weather[1]))
-    imageplus0 = M5ImagePlus(200, 140, url='http://openweathermap.org/img/w/{}.png'.format(current_weather[2]), timer=True, interval=3000)
+    label7.set_text("Tomorrow's forecast:")
+    image1 = M5ImagePlus(0, 150, url='https://openweathermap.org/img/w/{}.png'.format(futur_weather[1]), timer=False, interval=3000)
+    label8.set_text('{:.2f} °C'.format(futur_weather[0]))
+    label9.set_text('{}'.format(futur_weather[2]))
+    label10.set_text('{}'.format(futur_weather[2]))
 
 # Fonction pour démarrer la boucle principale
 def main_loop():
     global public_ip
+    
     api_last_update = time.time() - 300  # Force immediate update at start
     time_last_update = time.time() - 60  # Force immediate time update at start
 
     while True:
+        # Utilisez l'IP publique pour d'autres opérations ici, si nécessaire
+        update_sensor_display()
+        
         wlan = connect_wifi(wifi_credentials)
         if wlan:
             if public_ip is None:  # Obtient l'IP publique seulement si nécessaire
                 get_public_ip()
-            # Utilisez l'IP publique pour d'autres opérations ici, si nécessaire
-            update_sensor_display()
+            
             if time.time() - time_last_update > 60:  # Check if a minute has passed
                 get_current_time()
                 time_last_update = time.time()  # Update the last update time
+
             if time.time() - api_last_update > 300:
                 current_weather = get_current_weather(public_ip)
+                futur_weather = get_future_weather(public_ip)
                 if current_weather is not None:  # Vérifiez que current_weather n'est pas None avant de l'utiliser
-                    update_api_display(current_weather)
+                    label4.set_text('Outdoor Information:')
+
+                    update_api_display(current_weather, futur_weather)
                     api_last_update = time.time()
-
-                    send_data(public_ip, current_weather[0], current_weather[1])
-
         else:
-            IPLabel.set_text('Failed to connect to WiFi')
+            wifi_label.set_text('No Wi-Fi')
             public_ip = None  # Réinitialisez l'IP publique si la connexion échoue
         time.sleep(5)
 
