@@ -11,6 +11,7 @@ import utime
 from m5stack import speaker
 import struct
 import utime
+import os
 
 screen = M5Screen()
 screen.clean_screen()
@@ -32,23 +33,25 @@ gas_label = M5Label('Gas TVOC: 0ppb', x=15, y=107, color=0x000, font=FONT_MONT_1
 
 motion_label = M5Label('No', x=280, y=25, color=0x000)
 
-outdoor_image = M5Img("res/base.png", x=155, y=0, parent=None)
+outdoor_image = M5Img("res/03d.png", x=165, y=25, parent=None)
 
 line0 = M5Line(x1=15, y1=135, x2=305, y2=135, color=0x000, width=1, parent=None)
 outdoor_title_label = M5Label('Outdoor Information: Update...', x=15, y=148, color=0x000, font=FONT_MONT_14, parent=None)
 outdoor_temp_label = M5Label('', x=185, y=148, color=0x000, font=FONT_MONT_14, parent=None)
 outdoor_hum_label = M5Label('', x=254, y=148, color=0x000, font=FONT_MONT_14, parent=None)
     
-forecast_image = M5Img("res/base.png", x=30, y=190)
+forecast_image = M5Img("res/03d.png", x=30, y=190)
 
 title_forecast = M5Label("Tomorrow's forecast: Update...", x=15, y=175, color=0x000, font=FONT_MONT_14, parent=None)
 forecast_temp_label = M5Label('', x=225, y=200, color=0x000, font=FONT_MONT_22, parent=None)
 forecast_main_label = M5Label('', x=108, y=196, color=0x000, font=FONT_MONT_14, parent=None)
 forecast_desc_label = M5Label('', x=108, y=218, color=0x000, font=FONT_MONT_14, parent=None)
 
+bug = M5Label('', x=200, y=0, color=0x000000, font=FONT_MONT_14, parent=None)
+
 
 # WiFi credentials for connecting to the network
-wifi_credentials = [('TP-Link_76C4', '49032826'),('iot-unil', '4u6uch4hpY9pJ2f9')]
+wifi_credentials = [('iot-unil', '4u6uch4hpY9pJ2f9'),('TP-Link_76C4', '49032826')]
 flask_url = "http://192.168.0.103:8080"
 
 # Constants
@@ -61,29 +64,39 @@ last_motion_state = "No"
 last_play_time = 0
 play_interval = 60
 
+data_to_send = []
+
+# Temps de démarrage du programme
+start_time_test = time.time()
+
+
 
 # Function to connect to WiFi using provided credentials
 def connect_wifi(wifi_credentials):
+    if time.time() - start_time_test < 2 * 60:
+        return None
+     
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     if wlan.isconnected():
         return wlan
 
     timeout = 15  # Total time allowed for attempts
-    start_time = time.time()
 
     for ssid, password in wifi_credentials:
+        start_time = time.time()
         wlan.connect(ssid, password)
         while not wlan.isconnected():
             if time.time() - start_time > timeout:
                 wlan.disconnect()
-                return None
+                break  # Break the while loop and try the next network
             time.sleep(1)
 
-    if wlan.isconnected():
-        return wlan
-    else:
-        return None
+        if wlan.isconnected():
+            return wlan
+
+    # If none of the networks could be connected to, return None
+    return None
 
 # Function to get the public IP address of the device
 def get_public_ip():
@@ -205,6 +218,39 @@ def send_data(ip, outdoor_temp, outdoor_humidity):
         if response:
             response.close()
 
+def send_pending_data(ip, env3_0_temperature, env3_0_humidity, gas_unit_TVOC):
+    # Get the current local time
+    local_time = utime.localtime()
+
+    # Format the date and time
+    date = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
+    time = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
+
+    # Prepare the data to be sent
+    data = {
+        "values": {
+            "indoor_temp": env3_0_temperature,
+            "indoor_humidity": env3_0_humidity,
+            "ip_address": ip,
+            "indoor_air_quality": gas_unit_TVOC,  
+            "date": date,
+            "time": time
+        }
+    }
+
+    response = None
+    try:
+        # Send the data to BigQuery
+        url = "{}/send-to-bigquery".format(flask_url)
+        response = urequests.post(url, json=data)
+    except Exception as e:
+        # Print any errors that occur
+        print("Failed to send data to BigQuery:", str(e))
+    finally:
+        # Close the response if it was opened
+        if response:
+            response.close()
+
 def get_weather_spoken(ip):
     url = "{}/generate-current-weather-spoken".format(flask_url)
     response = urequests.post(url, json={"ip": ip})
@@ -247,7 +293,7 @@ def update_api_display(current_weather, futur_weather):
     outdoor_temp_label.set_text('{:.2f} °C'.format(current_weather[0]))
     outdoor_hum_label.set_text('{:.2f} %'.format(current_weather[1]))
     del outdoor_image
-    outdoor_image = M5Img('res/{}.png'.format(current_weather[2]), x=155, y=0, parent=None)
+    outdoor_image = M5Img('res/{}.png'.format(current_weather[2]), x=165, y=25, parent=None)
 
     title_forecast.set_text("Tomorrow's forecast:")
     del forecast_image
@@ -256,14 +302,9 @@ def update_api_display(current_weather, futur_weather):
     forecast_main_label.set_text('{}'.format(futur_weather[2]))
     forecast_desc_label.set_text('{}'.format(futur_weather[3]))
 
-    #TEST
-    #image_url = 'https://openweathermap.org/img/wn/{}.png'.format(current_weather[2])
-    #label80 = M5Label('{}:{}'.format(image_url), x=0, y=125, color=0x000, font=FONT_MONT_10, parent=None)
-
-
 # Fonction pour démarrer la boucle principale
 def main_loop():
-    global public_ip
+    global public_ip, data_to_send
     
     api_last_update = time.time() - 300  # Force immediate update at start
     time_last_update = time.time() - 60  # Force immediate time update at start
@@ -272,14 +313,21 @@ def main_loop():
     while True:
         now = time.time()
         update_sensor_display()
-
-        update_sound()
         
         wlan = connect_wifi(wifi_credentials)
         if wlan:
             if public_ip is None:
                 get_public_ip()
+
+             # Si la connexion est rétablie, envoyez toutes les données stockées
+            for data in data_to_send:
+                send_pending_data(public_ip, data[0], data[1], data[2])
+            # Videz la liste après l'envoi des données
+            data_to_send = []
+            bug.set_text('{}'.format(len(data_to_send)))
             
+            update_sound()
+
             if now - time_last_update > 60:
                 get_current_time()
                 time_last_update = now
@@ -299,9 +347,15 @@ def main_loop():
             wifi_label.set_text('No Wi-Fi')
             public_ip = None
 
+            if now - data_last_sent > 60:
+                data_to_send.append((env3_0.temperature, env3_0.humidity, gas_unit.TVOC))
+                data_last_sent = now
+
+            bug.set_text('{}'.format(len(data_to_send)))
+
         # Calculez le temps nécessaire pour dormir, assurez-vous qu'il ne soit pas négatif
         next_action = min(time_last_update + 60, api_last_update + 300, data_last_sent + 120)
-        sleep_time = max(0, next_action - now)
+        sleep_time = max(5, next_action - now)
         time.sleep(sleep_time)
 
 main_loop()
