@@ -48,6 +48,11 @@ class ServiceTestLocal(unittest.TestCase):
         # Test generating spoken weather description from text
         response = self.client.post('/generate-weather-spoken-from-text', json={"text": "Very low air humidity inside the building"})
         self.assertEqual(response.status_code, 200)
+        
+    def test_fetch_bigquery_history(self):
+        # Test fetching weather data from BigQuery
+        response = self.client.post('/fetch-bigquery-history')
+        self.assertEqual(response.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()

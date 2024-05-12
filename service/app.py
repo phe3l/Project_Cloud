@@ -132,6 +132,19 @@ def generate_weather_spoken_from_text():
         logging.error(f"Error generating spoken weather description: {e}")
         return jsonify({"error": str(e)}), 500
     
+@app.route('/fetch-bigquery-history', methods=['POST'])
+def fetch_bigquery_history():
+    """Endpoint to fetch weather data history from BigQuery."""
+    
+    try:
+        results= bq_client.fetch_weather_data()
+        return jsonify(results), 200
+    
+    except Exception as e:
+        logging.error(f"Error fetching weather data history: {e}")
+        return jsonify({"error": str(e)}), 500
+        
+    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)
