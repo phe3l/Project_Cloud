@@ -61,6 +61,12 @@ class ServiceTestCloudRun(unittest.TestCase):
         with open('/tmp/cloud_test.mp3', 'wb') as f:
             f.write(response.content)
         self.assertEqual(response.status_code, 200)
+        
+    def test_fetch_bigquery_history(self):
+        url = f'{self.base_url}/fetch-bigquery-history'
+        response = requests.post(url)
+        self.assertEqual(response.status_code, 200)
+        
 
 if __name__ == '__main__':
     unittest.main()
