@@ -27,11 +27,15 @@ datetime_label = M5Label('0000/00/00 - 00:00', x=15, y=0, color=0x000000, font=F
 wifi_status_label = M5Label('.....', x=260, y=0, color=0x000000, font=FONT_MONT_14)
 temperature_inside_label = M5Label('00.00 °C', x=15, y=33, color=0x000, font=FONT_MONT_34)
 humidity_inside_label = M5Label('Humidity: 00.00%', x=15, y=86, color=0x000, font=FONT_MONT_14)
+humidity_inside_alert_label = M5Label('', x=150, y=86, color=0xff0000, font=FONT_MONT_14)
+
 tvoc_label = M5Label('Gas TVOC: 0ppb', x=15, y=107, color=0x000, font=FONT_MONT_14)
+tvoc_inside_alert_label = M5Label('', x=150, y=107, color=0xff0000, font=FONT_MONT_14)
+
 motion_status_label = M5Label('No', x=275, y=20, color=0x000)
 
 # Outdoor information and forecasts
-visual_separator = M5Line(x1=15, y1=135, x2=305, y2=135, color=0x000, width=1, parent=None)
+visual_separator = M5Line(x1=15, y1=135, x2=305, y2=135, color=0x9c9c9c, width=1, parent=None)
 
 outdoor_weather_image = M5Img("res/03d.png", x=165, y=25, parent=None)
 outdoor_info_label = M5Label('Updating Outdoor Weather..', x=15, y=148, color=0x000, font=FONT_MONT_14, parent=None)
@@ -49,7 +53,7 @@ pending_data_label = M5Label('', x=220, y=0, color=0x000000, font=FONT_MONT_14, 
 
 # WiFi credentials for network connection
 wifi_credentials = [('iot-unil', '4u6uch4hpY9pJ2f9'),('TP-Link_76C4', '49032826')]
-flask_url = "http://192.168.0.103:8080"
+flask_url = "http://192.168.0.102:8080"
 
 # Constants for NTP time synchronization
 NTP_DELTA = 3155673600  # 1900-01-01 00:00:00 to 2000-01-01 00:00:00
@@ -72,8 +76,8 @@ start_time_test = time.time() # UNIQUEMENT POUR LES TESTS
 
 def connect_wifi(wifi_credentials):
     # UNIQUEMENT POUR LES TESTS
-    if time.time() - start_time_test < 2 * 60:
-        return None
+    #if time.time() - start_time_test < 2 * 60:
+    #    return None
      
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -210,7 +214,7 @@ def send_data(ip, outdoor_temp, outdoor_humidity):
             response.close()
 
 # Function to send pending data to the server
-def send_pending_data(ip, environmental_sensor,gas_detector):
+def send_pending_data(ip, environmental_sensor_temperature, environmental_sensor_humidity, gas_detector):
     # Get the current local time
     local_time = utime.localtime()
 
@@ -271,6 +275,22 @@ def update_sound():
             last_sound_played_timestamp = current_time
     last_motion_state = current_motion_state
 
+
+
+def check_and_alert(env3_hum, gas_value):
+
+    if env3_hum < 30.00:
+        humidity_inside_alert_label.set_text('Humidity Too LOW')
+    elif env3_hum > 60.00:
+        humidity_inside_alert_label.set_text('Humidity Too HIGH')
+    else:
+        humidity_inside_alert_label.set_text('')
+
+    if gas_value > 100: 
+        tvoc_inside_alert_label.set_text('Poor Air Quality')
+    else:
+        tvoc_inside_alert_label.set_text('')
+
 # Function to update the sensor display values
 def update_sensor_display():
     env3_temp = environmental_sensor.temperature 
@@ -281,6 +301,8 @@ def update_sensor_display():
 
     gas_value = gas_detector.TVOC
     tvoc_label.set_text('Gas TVOC: {} ppb'.format(gas_value))
+
+    check_and_alert(env3_hum, gas_value)
     
 
 # Function to update the API display values
@@ -323,7 +345,7 @@ def main_loop():
                 send_pending_data(device_public_ip, data[0], data[1], data[2])
             # Clear the buffer after sending data
             outgoing_data_buffer = []
-            pending_data_label.set_text('{}'.format(len(outgoing_data_buffer)))
+            pending_data_label.set_text('{}'.format(len(outgoing_data_buffer) if len(outgoing_data_buffer) > 0 else ""))
             
             update_sound()
 
@@ -359,7 +381,8 @@ def main_loop():
         # Calculate the time to sleep, ensure it's not negative
         next_action = min(time_last_update + 60, api_last_update + 300, data_last_sent + 120)
         sleep_time = max(5, next_action - now)
-        time.sleep(sleep_time)
+        #time.sleep(sleep_time)
+        time.sleep(1)
 
 
 main_loop()
