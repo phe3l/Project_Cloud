@@ -1,0 +1,18 @@
+.header-container {
+    background-color: #1A5276;  /* Dark background */
+    color: #fff;             /* White text color */
+    padding: 20px 50px;      /* Padding around the content */
+}
+
+.header-row {
+    align-items: center;
+}
+
+.header-label {
+    font-weight: bold;
+}
+
+.header-value, .header-location, .header-temperature {
+    margin-left: 5px;
+}
+

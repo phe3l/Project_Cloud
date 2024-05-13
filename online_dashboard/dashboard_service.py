@@ -25,3 +25,4 @@ class DashboardService:
         
         except Exception as e:
             raise Exception(f"Failed to fetch weather history: {e}")
+        
