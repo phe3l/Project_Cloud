@@ -26,3 +26,17 @@ class DashboardService:
         except Exception as e:
             raise Exception(f"Failed to fetch weather history: {e}")
         
+    def fetch_current_weather(self, ip):
+        try:
+            URL = SERVICE_URL + "/current-weather"
+            response = requests.post(URL, json={"ip": ip})
+            
+            response = response.json()
+            result = f'{round(response["main"]["temp"])}°C, {response["weather"][0]["main"]}'
+            
+            return result
+        except Exception as e:
+            raise Exception(f"Failed to fetch current weather: {e}")
+        
+
+        

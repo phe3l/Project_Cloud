@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 import pandas as pd
+from dashboard_service import DashboardService
+import requests
 
 # def generate_time_series(selected_date) -> pd.date_range:
 #     start_time = datetime.combine(selected_date, datetime.min.time())
@@ -26,8 +28,27 @@ def prepare_daily_data(df: pd.DataFrame, selected_date):
     
     return combined_df
 
+
 def calculate_daily_averages(df: pd.DataFrame):
-    daily_avg = df.resample("D", on="datetime").mean()
-    daily_avg["datetime"] = daily_avg.index
-    return daily_avg
+    dff = df.copy()
+    dff.set_index("datetime", inplace=True)
+    dff.drop(columns=["ip_address", "outdoor_weather", "indoor_air_quality"], inplace=True)
+    
+    daily_averages = dff.resample("D").mean()
+    
+    return daily_averages
+
+
+def get_location_via_ip(ip):
+    try:
+        API_URL = "http://ip-api.com/json/" + ip
+        params = {"fields": "city,country"}
+        
+        response = requests.get(API_URL, params=params)
+        
+        return response.json()["city"] + ", " + response.json()["country"]
+    except Exception as e:
+        raise Exception(f"Failed to fetch location using ip: {e}")
+    
+    
     

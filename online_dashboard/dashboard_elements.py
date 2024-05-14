@@ -10,20 +10,24 @@ def header():
     header = html.Div([
         dbc.Row([
             dbc.Col(html.Div([
-                html.Span("Last Updated Time: ", className="header-label"),
-                html.Span("19-01-2022 11:58:43", className="header-value")
+                DashIconify(icon="mdi:clock", width=15, style={"marginRight": 5}),
+                html.Span("Dashboard Last Updated: ", className="header-label"),
+                html.Span("19-01-2022 11:58:43", className="header-value", id="header-time")
                 ]), 
                 width=4
             ),
             dbc.Col(html.Div([
                 DashIconify(icon="material-symbols:home", width=15, style={"marginRight": 5}),
-                html.Span("IoT Device Location:", className="header-label"),
-                html.Span("Lausanne, Switzerland", className="header-location")
+                html.Span("IoT Device Last Location:", className="header-label"),
+                html.Span("Lausanne, Switzerland", className="header-location", id="header-location")
                 ]), 
-                width=4
+                width=4, 
+                style={"textAlign": "center"}
             ),
             dbc.Col(html.Div([
-                html.Span("8°C", className="header-temperature")
+                DashIconify(icon="tabler:temperature-sun", width=15, style={"marginRight": 5}),
+                html.Span("Current Outside Conditions:", className="header-label"),
+                html.Span("20°C", className="header-temperature", id="header-temperature"),
                 ]), 
                 width=4,
                 style={"textAlign": "right"}
@@ -31,3 +35,11 @@ def header():
         ], className="header-row"),
     ], className="header-container")
     return header
+
+plots_legend=dict(
+    orientation="h",
+    yanchor="top",
+    y=-0.1,  # Position the legend below the graph
+    xanchor="center",
+    x=0.5
+)
