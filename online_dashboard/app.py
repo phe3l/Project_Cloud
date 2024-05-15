@@ -20,25 +20,27 @@ app.layout = html.Div([
     
     dcc.Interval(id='interval-component', interval=60*1000, n_intervals=0),
     html.Div([
-        
-        dbc.Row([
-            dbc.Col(
-                dbc.Card(
+        dbc.Row(
+            dbc.Card(
                     dbc.CardBody([
                         html.H4("Current Weather", className="card-title"),
                         html.P(id="current-weather", className="card-text"),
                         DashIconify(icon="mdi:weather-partly-cloudy", width=50),
                         html.P(id="last-update-time", className="card-text"),
                     ]),
-                    className="width-4-container"
+                    className="dashboard-container"
                 ),
+        style={"margin": "0px 0px 20px 0px"}),
+        dbc.Row([
+            dbc.Col(
+                
                 width=4),
             dbc.Col(
-                dcc.Graph(id="avg-temp-plot", className="width-4-container"),
+                dcc.Graph(id="avg-temp-plot", className="dashboard-container"),
                 width={"size": 4}
             ),
             dbc.Col(
-                dcc.Graph(id="avg-humidity-plot", className="width-4-container"),
+                dcc.Graph(id="avg-humidity-plot", className="dashboard-container"),
                 width={"size": 4}
             )
         ]),
@@ -60,7 +62,7 @@ app.layout = html.Div([
             )
         ]
         ),
-    ], style={"margin": 50}),
+    ], style={"margin": "20px 50px 20px 50px"}),
     
 ])
 

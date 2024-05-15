@@ -1,5 +1,5 @@
 .header-container {
-    background-color: #525f7f;  /* Dark background */
+    background-color: #313748;  /* Dark background */
     color: #fff;             /* White text color */
     padding: 10px 50px;      /* Padding around the content */
 }
@@ -10,9 +10,11 @@
 
 .header-label {
     font-weight: bold;
+    color: #fff;
 }
 
 .header-value, .header-location, .header-temperature {
     margin-left: 5px;
+    color: #fff;
 }
 

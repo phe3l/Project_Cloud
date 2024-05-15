@@ -6,18 +6,22 @@ def separator():
     return html.Div(style={'height': '1px', 'background-color': '#85929E', 'margin': 30})
 
 
+import dash_bootstrap_components as dbc
+from dash_iconify import DashIconify
+from dash import html
+
 def header():
-    header = html.Div([
-        dbc.Row([
+    navbar = dbc.Navbar(
+        dbc.Container([
             dbc.Col(html.Div([
-                DashIconify(icon="mdi:clock", width=15, style={"marginRight": 5}),
+                DashIconify(icon="mdi:clock", width=15, style={"marginRight": 5, "color": "#fff"}),
                 html.Span("Dashboard Last Updated: ", className="header-label"),
                 html.Span("19-01-2022 11:58:43", className="header-value", id="header-time")
                 ]), 
                 width=4
             ),
             dbc.Col(html.Div([
-                DashIconify(icon="material-symbols:home", width=15, style={"marginRight": 5}),
+                DashIconify(icon="material-symbols:home", width=15, style={"marginRight": 5, "color": "#fff"}),
                 html.Span("IoT Device Last Location:", className="header-label"),
                 html.Span("Lausanne, Switzerland", className="header-location", id="header-location")
                 ]), 
@@ -25,7 +29,7 @@ def header():
                 style={"textAlign": "center"}
             ),
             dbc.Col(html.Div([
-                DashIconify(icon="tabler:temperature-sun", width=15, style={"marginRight": 5}),
+                DashIconify(icon="tabler:temperature-sun", width=15, style={"marginRight": 5, "color": "#fff"}),
                 html.Span("Current Outside Conditions:", className="header-label"),
                 html.Span("20°C", className="header-temperature", id="header-temperature"),
                 ]), 
@@ -33,8 +37,12 @@ def header():
                 style={"textAlign": "right"}
             )
         ], className="header-row"),
-    ], className="header-container")
-    return header
+        color="#525f7f",
+        dark=True,
+        sticky="top"
+    )
+    return navbar
+
 
 plots_legend=dict(
     orientation="h",
