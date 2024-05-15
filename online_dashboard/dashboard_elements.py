@@ -39,7 +39,7 @@ def header():
 plots_legend=dict(
     orientation="h",
     yanchor="top",
-    y=-0.1,  # Position the legend below the graph
+    y=-0.15,  # Position the legend below the graph
     xanchor="center",
     x=0.5
 )

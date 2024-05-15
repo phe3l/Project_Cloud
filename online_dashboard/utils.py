@@ -8,6 +8,8 @@ import requests
 #     end_time = datetime.combine(selected_date, datetime.max.time())
 #     return pd.date_range(start_time, end_time, freq="1h")
 
+columns_rename_map = {"indoor_temp": "Indoor Temperature", "outdoor_temp": "Outdoor Temperature", "indoor_humidity" : "Indoor Humidity", "outdoor_humidity" : "Outdoor Humidity", "indoor_air_quality": "Indoor Air Quality"}
+
 def prepare_daily_data(df: pd.DataFrame, selected_date):
     start_time = datetime.combine(selected_date, datetime.min.time())
     end_time = datetime.combine(selected_date, datetime.max.time())
@@ -32,7 +34,8 @@ def prepare_daily_data(df: pd.DataFrame, selected_date):
 def calculate_daily_averages(df: pd.DataFrame):
     dff = df.copy()
     dff.set_index("datetime", inplace=True)
-    dff.drop(columns=["ip_address", "outdoor_weather", "indoor_air_quality"], inplace=True)
+    dff.rename(columns=columns_rename_map, inplace=True)
+    dff.drop(columns=["ip_address", "outdoor_weather"], inplace=True)
     
     daily_averages = dff.resample("D").mean()
     
@@ -49,6 +52,8 @@ def get_location_via_ip(ip):
         return response.json()["city"] + ", " + response.json()["country"]
     except Exception as e:
         raise Exception(f"Failed to fetch location using ip: {e}")
+    
+
     
     
     

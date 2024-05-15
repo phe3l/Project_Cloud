@@ -1,12 +1,12 @@
 
 
-.graph-container {
-    background-color: #f9f9f9;
+.width-4-container {
+    background-color: #111111;
     border-radius: 15px;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);   
+    box-shadow: 2px 2px 5px rgba(36, 0, 145, 0.1);   
 }
 
 
 body {
-    background-color: #D6EAF8;
+    background-color: #212529;
 }

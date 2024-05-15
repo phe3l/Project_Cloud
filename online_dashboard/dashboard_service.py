@@ -38,5 +38,9 @@ class DashboardService:
         except Exception as e:
             raise Exception(f"Failed to fetch current weather: {e}")
         
+ds = DashboardService()
+df = ds.fetch_weather_data()
+df.to_csv("weather_data.csv", index=False)
+        
 
         
