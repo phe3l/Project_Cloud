@@ -10,6 +10,14 @@ import dash_bootstrap_components as dbc
 from dash_iconify import DashIconify
 from dash import html
 
+plots_legend=dict(
+    orientation="h",
+    yanchor="top",
+    y=-0.15,  # Position the legend below the graph
+    xanchor="center",
+    x=0.5
+)
+
 def header():
     navbar = dbc.Navbar(
         dbc.Container([
@@ -37,17 +45,40 @@ def header():
                 style={"textAlign": "right"}
             )
         ], className="header-row"),
-        color="#525f7f",
+        color="#34495E",
         dark=True,
         sticky="top"
     )
     return navbar
 
+def average_metrics_plots_row():
+    row = dbc.Row([
+            dbc.Col(
+                dcc.Graph(id="avg-temp-plot", className="dashboard-container"),
+                width=4
+            ),
+            dbc.Col(
+                dcc.Graph(id="avg-humidity-plot", className="dashboard-container"),
+                width=4
+            ),
+            dbc.Col(
+                dcc.Graph(id="avg-air-quality-plot", className="dashboard-container"),
+                width=4
+            )
+        ], style={"margin-bottom": "20px"})
+    return row 
 
-plots_legend=dict(
-    orientation="h",
-    yanchor="top",
-    y=-0.15,  # Position the legend below the graph
-    xanchor="center",
-    x=0.5
-)
+def current_metrics_row():
+    row = dbc.Row(
+            dbc.Card(
+                    dbc.CardBody([
+                        html.H4("Current Weather", className="card-title"),
+                        html.P(id="current-weather", className="card-text"),
+                        DashIconify(icon="mdi:weather-partly-cloudy", width=50),
+                        html.P(id="last-update-time", className="card-text"),
+                    ]),
+                    className="dashboard-container"
+                ),
+        style={"margin": "0px 0px 20px 0px"}
+    )
+    return row
