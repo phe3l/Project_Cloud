@@ -30,8 +30,8 @@ motion_status_label = M5Label('NM', x=255, y=0, color=0xffffff, font=FONT_MONT_1
 temperature_inside_label = M5Label('00.00°C', x=22, y=30, color=0xcd8100, font=FONT_MONT_34)
 humidity_inside_label = M5Label('Humidity: 00.00%', x=170, y=30, color=0xffffff, font=FONT_MONT_14)
 tvoc_label = M5Label('C02: 0ppm', x=170, y=50, color=0xffffff, font=FONT_MONT_14)
-#lcd.image(0, 79, '/flash/res/default_current_weather.png')
-#lcd.image(0, 150, '/flash/res/default_future_weather.png')
+lcd.image(0, 79, '/flash/res/default_current_weather.png')
+lcd.image(0, 150, '/flash/res/default_future_weather.png')
 
 # Error label & pending data label
 pending_data_label = M5Label('', x=240, y=0, color=0xffffff, font=FONT_MONT_10)
@@ -52,7 +52,7 @@ last_sound_played_timestamp = 0
 sound_playback_interval = 60
 
 # List to accumulate data that will be sent to a server or processed further
-outgoing_data_buffer  = []
+outgoing_data_buffer = []
 
 # Constants for NTP time synchronization
 NTP_DELTA = 3155673600  # 1900-01-01 00:00:00 to 2000-01-01 00:00:00
@@ -181,11 +181,9 @@ def get_current_weather(ip):
                 f.write(response.content)
 
             # Afficher l'image sur l'écran M5Stack
-            #lcd.clear(lcd.WHITE)  # Effacer l'écran
             lcd.image(0, 79, image_path)  # Afficher l'image
             return True
         else:
-            error_label.set_text('url : {}'.format(url))
             error_label.set_text('Error getting weather: {}'.format(response.status_code))
             return False
     except Exception as e:
@@ -210,11 +208,9 @@ def get_future_weather(ip):
                 f.write(response.content)
 
             # Afficher l'image sur l'écran M5Stack
-            #lcd.clear(lcd.WHITE)  # Effacer l'écran
             lcd.image(0, 150, image_path)  # Afficher l'image
             return True
         else:
-            error_label.set_text('url : {}'.format(url))
             error_label.set_text('Error getting weather: {}'.format(response.status_code))
             return False
     except Exception as e:
@@ -427,17 +423,13 @@ def main_loop():
                 now = time.time()
 
                 # Check if it's time to fetch the current weather image
-                if now - weather_last_checked >= 120 and wlan.isconnected():
+                if now - weather_last_checked >= 120:
                     if get_current_weather(device_public_ip):
-                        weather_last_checked = now
-                    else:
                         weather_last_checked = now
 
                 # Check if it's time to fetch the current weather image
-                if now - future_last_checked >= 3600 and wlan.isconnected():
+                if now - future_last_checked >= 3600:
                     if get_future_weather(device_public_ip):
-                        future_last_checked = now
-                    else:
                         future_last_checked = now
 
                 # Check if it's time to send data
@@ -452,7 +444,7 @@ def main_loop():
 
                 # Append sensor data to buffer if not sent after 120 seconds         
                 if now - data_last_sent > 120:
-                    outgoing_data_buffer.append((environmental_sensor.temperature, environmental_sensor.humidity, gas_detector.TVOC))
+                    outgoing_data_buffer.append((environmental_sensor.temperature, environmental_sensor.humidity, gas_detector.eCO2))
                     data_last_sent = now
                 
                 pending_data_label.set_text('{}'.format(len(outgoing_data_buffer )))
