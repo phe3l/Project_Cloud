@@ -1,41 +1,25 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import pandas as pd
-from dashboard_service import DashboardService
 import requests
 
-# def generate_time_series(selected_date) -> pd.date_range:
-#     start_time = datetime.combine(selected_date, datetime.min.time())
-#     end_time = datetime.combine(selected_date, datetime.max.time())
-#     return pd.date_range(start_time, end_time, freq="1h")
 
 columns_rename_map = {"indoor_temp": "Indoor Temperature", "outdoor_temp": "Outdoor Temperature", "indoor_humidity" : "Indoor Humidity", "outdoor_humidity" : "Outdoor Humidity", "indoor_air_quality": "Indoor Air Quality"}
 
-def prepare_daily_data(df: pd.DataFrame, selected_date):
-    start_time = datetime.combine(selected_date, datetime.min.time())
-    end_time = datetime.combine(selected_date, datetime.max.time())
+def prepare_daily_data(df: pd.DataFrame):
+
+    dff = df.copy()
+    dff.set_index("datetime", inplace=True)
+    dff.drop(columns=["ip_address"], inplace=True)
+    dff.rename(columns=columns_rename_map, inplace=True)
     
-    #add row in df 
-    new_rows = pd.DataFrame({
-        "datetime": [start_time, end_time],
-        "indoor_air_quality": [None, None],
-        "indoor_humidity": [None, None],
-        "indoor_temp": [None, None],
-        "ip_address": [None, None],
-        "outdoor_humidity": [None, None],
-        "outdoor_temp": [None, None],
-        "outdoor_weather": [None, None]
-    })
-    
-    combined_df = pd.concat([df, new_rows], ignore_index=True)
-    
-    return combined_df
+    return dff
 
 
 def calculate_daily_averages(df: pd.DataFrame):
     dff = df.copy()
     dff.set_index("datetime", inplace=True)
     dff.rename(columns=columns_rename_map, inplace=True)
-    dff.drop(columns=["ip_address", "outdoor_weather"], inplace=True)
+    dff.drop(columns=["ip_address"], inplace=True)
     
     daily_averages = dff.resample("D").mean()
     
@@ -53,7 +37,25 @@ def get_location_via_ip(ip):
     except Exception as e:
         raise Exception(f"Failed to fetch location using ip: {e}")
     
-
+    
+def get_weather_icon_by_description(description):
+    
+    if description == "Clear":
+        return "ph:sun-fill"
+    elif description == "Clouds":
+        return "bi:clouds-fill"
+    elif description == "Rain":
+        return "f7:cloud-rain-fill"
+    elif description == "Snow":
+        return "bi:cloud-snow-fill"
+    elif description == "Thunderstorm":
+        return "ion:thunderstorm-sharp"
+    elif description == "Drizzle":
+        return "f7:cloud-drizzle-fill"
+    else:
+        return "material-symbols:cloud"
+    
+    
     
     
     

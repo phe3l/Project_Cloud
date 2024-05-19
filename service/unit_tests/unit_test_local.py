@@ -11,7 +11,7 @@ class ServiceTestLocal(unittest.TestCase):
 
     def test_insert_weather(self):
         # Test sending data to BigQuery
-        response = self.client.post('/send-to-bigquery', json={"values": {"date": "2024-05-01", "time": "17:29:54", "indoor_temp": 28.0, "indoor_humidity": 39.0, "outdoor_temp": 21.9, "outdoor_humidity": 28.0, "outdoor_weather": "Test", "ip_address": "86.111.136.24"}})
+        response = self.client.post('/send-to-bigquery', json={"values": {"date": "2024-05-01", "time": "17:29:54", "indoor_temp": 28.0, "indoor_humidity": 39.0, "outdoor_temp": 21.9, "outdoor_humidity": 28.0, "ip_address": "86.111.136.24"}})
         self.assertEqual(response.status_code, 200)
 
     def test_get_current_weather_missing_ip(self):

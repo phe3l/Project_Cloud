@@ -3,3 +3,4 @@ dash
 pandas
 dash-bootstrap-components
 dash-iconify
+dash_daq

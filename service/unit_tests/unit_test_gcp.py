@@ -14,7 +14,7 @@ class ServiceTestCloudRun(unittest.TestCase):
             "values": {
                 "date": "2024-05-01", "time": "17:29:54", "indoor_temp": 28.0, 
                 "indoor_humidity": 39.0, "outdoor_temp": 21.9, "outdoor_humidity": 28.0,
-                "outdoor_weather": "Test", "ip_address": "86.111.136.24"
+                "ip_address": "86.111.136.24"
             }
         }
         response = requests.post(url, json=payload)

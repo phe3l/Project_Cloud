@@ -32,15 +32,15 @@ class DashboardService:
             response = requests.post(URL, json={"ip": ip})
             
             response = response.json()
-            result = f'{round(response["main"]["temp"])}°C, {response["weather"][0]["main"]}'
             
-            return result
+            return response
+        
         except Exception as e:
             raise Exception(f"Failed to fetch current weather: {e}")
         
-ds = DashboardService()
-df = ds.fetch_weather_data()
-df.to_csv("weather_data.csv", index=False)
+# ds = DashboardService()
+# df = ds.fetch_weather_data()
+# df.to_csv("weather_data.csv", index=False)
         
 
         
