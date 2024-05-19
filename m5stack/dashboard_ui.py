@@ -53,7 +53,7 @@ pending_data_label = M5Label('', x=220, y=0, color=0x000000, font=FONT_MONT_14, 
 
 # WiFi credentials for network connection
 wifi_credentials = [('iot-unil', '4u6uch4hpY9pJ2f9'),('TP-Link_76C4', '49032826')]
-flask_url = "http://192.168.0.102:8080"
+flask_url = "http://192.168.0.105:8080"
 
 # Constants for NTP time synchronization
 NTP_DELTA = 3155673600  # 1900-01-01 00:00:00 to 2000-01-01 00:00:00
@@ -327,9 +327,9 @@ def main_loop():
     global device_public_ip, outgoing_data_buffer 
     
     # Initial forced updates
-    api_last_update = time.time() - 240  # Force immediate update at start
+    api_last_update = time.time() - 600  # Force immediate update at start
     time_last_update = time.time() - 60  # Force immediate time update at start
-    data_last_sent = time.time() - 60  
+    data_last_sent = time.time()  
 
     while True:
         now = time.time()
@@ -354,8 +354,8 @@ def main_loop():
                 get_current_time()
                 time_last_update = now
 
-            # Update weather data every 5 minutes (300 seconds)
-            if now - api_last_update > 300:
+            # Update weather data every 10 minutes (600 seconds)
+            if now - api_last_update > 600:
                 current_weather = get_current_weather(device_public_ip)
                 futur_weather = get_future_weather(device_public_ip)
                 if current_weather and futur_weather:
@@ -365,7 +365,7 @@ def main_loop():
 
             # Send data every 2 minutes (120 seconds)
             if now - data_last_sent > 120:
-                send_data(device_public_ip, current_weather[0], current_weather[1] if current_weather else None)
+                send_data(device_public_ip, current_weather[0], current_weather[1])
                 data_last_sent = now
         else:
             wifi_status_label.set_text('No Wi-Fi')
