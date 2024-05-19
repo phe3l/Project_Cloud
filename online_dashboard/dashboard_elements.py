@@ -1,4 +1,4 @@
-from dash import Dash, html, dcc, callback, Output, Input
+from dash import html, dcc
 import dash_bootstrap_components as dbc
 from dash_iconify import DashIconify
 import dash_daq as daq
