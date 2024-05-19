@@ -51,11 +51,11 @@ def initialize_wifi_and_time(wifi_credentials):
     global wlan, device_public_ip
     if connect_wifi(wifi_credentials):
         if get_device_public_ip() and sync_time_with_ntp():
-            wifi_status_label.set_text('Wi-Fi & Time Synced')
+            wifi_status_label.set_text('W+T')
         else:
-            wifi_status_label.set_text('Wi-Fi Connected, Time Sync Failed')
+            wifi_status_label.set_text('W-T')
     else:
-        wifi_status_label.set_text('No Wi-Fi')
+        wifi_status_label.set_text('-W')
         device_public_ip = None
 
 def connect_wifi(wifi_credentials):
@@ -69,12 +69,11 @@ def connect_wifi(wifi_credentials):
 
     ssid, password = wifi_credentials
     timeout = 30  # Timeout in seconds
-    interval = 1  # Check every second
     start_time = time.time()
     wlan.connect(ssid, password)
     error_label.set_text('Trying to connect to WiFi...{}'.format(ssid))
     while not wlan.isconnected() and (time.time() - start_time < timeout):
-        time.sleep(interval)
+        time.sleep(1)
 
     if wlan.isconnected():
         error_label.set_text('Network config: {}'.format(wlan.ifconfig()))
@@ -139,7 +138,14 @@ def update_datetime_label():
     """
     try:
         local_time = time.localtime()
-        datetime_label.set_text('{}/{}/{} - {:02}:{:02}'.format(local_time[0], local_time[1], local_time[2], local_time[3], local_time[4]))
+        days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        day_of_week = days_of_week[local_time[6]]  # local_time[6] is the weekday (0=Monday, 6=Sunday)
+        
+        formatted_date = '{} {:02d}.{:02d}.{:04d} - {:02d}:{:02d}'.format(
+            day_of_week, local_time[2], local_time[1], local_time[0], local_time[3], local_time[4]
+        )
+        
+        datetime_label.set_text(formatted_date)
     except Exception as e:
         error_label.set_text('Error updating time: {}'.format(e))
 
@@ -171,8 +177,7 @@ def send_data(ip, outdoor_temp, outdoor_humidity):
     Send sensor data to the server.
     """
     response = None
-    rtc = RTC()
-    local_time = rtc.datetime()
+    local_time = time.localtime()
     date_str = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
     time_str = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
 
@@ -193,7 +198,7 @@ def send_data(ip, outdoor_temp, outdoor_humidity):
         url = "{}/send-to-bigquery".format(flask_url)
         response = urequests.post(url, json=data)
         if response.status_code == 200:
-            error_label2.set_text('Data sent successfully')
+            error_label.set_text('Data sent successfully {}'.format({time_str}))
         else:
             error_label2.set_text('Error sending data: {}'.format(response.status_code))
     except Exception as e:
@@ -257,4 +262,4 @@ while True:
         error_label.set_text('Error in main loop: {}'.format(e))
 
     # Add a delay to avoid flooding the server
-    time.sleep(10)
+    time.sleep(7)
