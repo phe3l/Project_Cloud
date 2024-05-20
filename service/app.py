@@ -310,7 +310,9 @@ def fetch_bigquery_history():
     except Exception as e:
         logging.error(f"Error fetching weather data history: {e}")
         return jsonify({"error": str(e)}), 500
-        
+    
+
+
 
 @app.route('/fetch-bigquery-history-image', methods=['GET'])
 def fetch_bigquery_history_image():
@@ -318,85 +320,64 @@ def fetch_bigquery_history_image():
     
     try:
         # Fetch data from BigQuery
-        data = bq_client.fetch_weather_data()
+        data = bq_client.fetch_average_weather_data(last_days=8)
         
         # Convertir les données en DataFrame
         df = pd.DataFrame(data)
 
-        # Fusionner date et time en une seule colonne datetime
-        df['datetime'] = pd.to_datetime(df['date'] + ' ' + df['time'])
-
-        # Filtrer les 15 dernières entrées
-        df_last_15 = df.tail(15)
-
         # Configurer la taille du graphe
-        fig, axs = plt.subplots(3, 1, figsize=(3.21, 1.60), sharex=True)
-
+        fig, axs = plt.subplots(3, 1, figsize=(3.2, 1.65), sharex=True)  # Réduire la taille de l'image
+        fig.patch.set_facecolor('black')
+        
+        # Configuration des axes
+        for ax in axs:
+            ax.set_facecolor('black')
+            ax.tick_params(axis='x', colors='white')
+            ax.tick_params(axis='y', colors='white')
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+        
+        # Garder visible uniquement l'axe x en bas
+        axs[0].xaxis.set_visible(False)
+        axs[1].xaxis.set_visible(False)
+        
         # Tracer la température intérieure
-        axs[0].plot(df_last_15['datetime'], df_last_15['indoor_temp'], label='Température intérieure (°C)', marker='o', markersize=2, linewidth=0.5, color='tab:blue')
-        axs[0].set_ylabel('T.°C', fontsize=6)
-
-        # Supprimer l'axe x pour le premier graphe
-        axs[0].get_xaxis().set_visible(False)
-
-        # Supprimer l'échelle pour l'axe y
+        axs[0].plot(df['date'], df['avg_temp'], label='Température intérieure (°C)', marker='o', markersize=4, linewidth=1, color='tab:blue')  # Augmenter la taille des marqueurs et la largeur des lignes
+        axs[0].set_ylabel('T.°C', fontsize=9, color='white')  # Augmenter la taille du texte
         axs[0].yaxis.set_ticks([])
 
-        # Supprimer les bordures (spines)
-        for spine in axs[0].spines.values():
-            spine.set_visible(False)
-
-        # Afficher les valeurs tous les 3 points
-        for i in range(0, len(df_last_15['datetime']), 3):
-            axs[0].annotate(f"{df_last_15['indoor_temp'].iloc[i]}", (df_last_15['datetime'].iloc[i], df_last_15['indoor_temp'].iloc[i]), fontsize=6)
+        # Afficher les valeurs pour chaque point (déplacer les valeurs un peu plus haut et arrondir les valeurs)
+        for i in range(len(df['date'])):
+            axs[0].annotate(f"{int(df['avg_temp'].iloc[i])}", (df['date'].iloc[i], df['avg_temp'].iloc[i] + 0.5), fontsize=8, color='white')  # Augmenter la taille du texte
 
         # Tracer l'humidité intérieure
-        axs[1].plot(df_last_15['datetime'], df_last_15['indoor_humidity'], label='Humidité intérieure (%)', marker='o', markersize=2, linewidth=0.5, color='tab:orange')
-        axs[1].set_ylabel('H.%', fontsize=6)
-
-        # Supprimer l'axe x pour le deuxième graphe
-        axs[1].get_xaxis().set_visible(False)
-
-        # Supprimer l'échelle pour l'axe y
+        axs[1].plot(df['date'], df['avg_humidity'], label='Humidité intérieure (%)', marker='o', markersize=4, linewidth=1, color='tab:orange')  # Augmenter la taille des marqueurs et la largeur des lignes
+        axs[1].set_ylabel('H.%', fontsize=9, color='white')  # Augmenter la taille du texte
         axs[1].yaxis.set_ticks([])
 
-        # Supprimer les bordures (spines)
-        for spine in axs[1].spines.values():
-            spine.set_visible(False)
-
-        # Afficher les valeurs tous les 3 points
-        for i in range(0, len(df_last_15['datetime']), 3):
-            axs[1].annotate(f"{df_last_15['indoor_humidity'].iloc[i]}", (df_last_15['datetime'].iloc[i], df_last_15['indoor_humidity'].iloc[i]), fontsize=6)
+        # Afficher les valeurs pour chaque point (déplacer les valeurs un peu plus haut et arrondir les valeurs)
+        for i in range(len(df['date'])):
+            axs[1].annotate(f"{int(df['avg_humidity'].iloc[i])}", (df['date'].iloc[i], df['avg_humidity'].iloc[i] + 0.5), fontsize=8, color='white')  # Augmenter la taille du texte
 
         # Tracer la qualité de l'air intérieur
-        axs[2].plot(df_last_15['datetime'], df_last_15['indoor_air_quality'], label='Qualité de l\'air intérieur (CO2)', marker='o', markersize=2, linewidth=0.5, color='tab:green')
-        axs[2].set_ylabel('C02', fontsize=6)
-
-        # Supprimer l'échelle pour l'axe y
+        axs[2].plot(df['date'], df['avg_co2'], label='Qualité de l\'air intérieur (CO2)', marker='o', markersize=4, linewidth=1, color='tab:green')  # Augmenter la taille des marqueurs et la largeur des lignes
+        axs[2].set_ylabel('CO2', fontsize=9, color='white')  # Augmenter la taille du texte
         axs[2].yaxis.set_ticks([])
 
-        # Supprimer les bordures (spines)
-        for spine in axs[2].spines.values():
-            spine.set_visible(False)
+        # Afficher les valeurs pour chaque point (déplacer les valeurs un peu plus haut et arrondir les valeurs)
+        for i in range(len(df['date'])):
+            axs[2].annotate(f"{int(df['avg_co2'].iloc[i])}", (df['date'].iloc[i], df['avg_co2'].iloc[i] + 5), fontsize=8, color='white')  # Augmenter la taille du texte
 
-        # Afficher les valeurs tous les 3 points
-        for i in range(0, len(df_last_15['datetime']), 3):
-            axs[2].annotate(f"{df_last_15['indoor_air_quality'].iloc[i]}", (df_last_15['datetime'].iloc[i], df_last_15['indoor_air_quality'].iloc[i]), fontsize=6)
-
-        # Configurer les labels de l'axe x pour afficher uniquement l'heure
-        axs[2].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-
-        # Ajuster les labels de l'axe x pour qu'ils s'affichent bien
-        plt.xticks(rotation=0, ha='right', fontsize=3)
-        for ax in axs:
-            ax.tick_params(axis='both', which='major', labelsize=6)
+        # Configurer les labels de l'axe x
+        axs[2].xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+        axs[2].tick_params(axis='x', rotation=0, labelsize=8, colors='white')  # Augmenter la taille du texte
 
         # Ajuster l'espacement entre les sous-graphiques
-        plt.tight_layout()
+        plt.subplots_adjust(left=0.08, right=0.98, top=0.89, bottom=0.15, hspace=0.45)
 
         # Sauvegarder le graphe dans un fichier en mémoire
         img_io = BytesIO()
-        plt.savefig(img_io, format='png', dpi=100)
+        plt.savefig(img_io, format='png', dpi=100, facecolor='black')
         img_io.seek(0)
         plt.close()
 
