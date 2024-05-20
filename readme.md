@@ -1,4 +1,4 @@
-# Project Cloud - Indoor/Outdoor Weather Monitoring System
+# Indoor & Outdoor Weather Monitoring System
 
 ## 🌐 Project Overview
 This project implements an indoor/outdoor weather monitoring system using an M5Stack IoT device integrated with various sensors. The system gathers data from indoor conditions and outdoor weather information via an API, presenting it through a cloud-based dashboard developed with Plotly Dash and on the M5Stack device screen. The M5Stack device also has the ability to say out loud waether conditions when specific criteria are met. 
@@ -25,6 +25,7 @@ This project implements an indoor/outdoor weather monitoring system using an M5S
   - `vertexai_client.py`: Handles interactions with Vertex AI for advanced analytics.
   - `weather_client.py`: Fetches outdoor weather data from external APIs.
   - `unit_tests/`: Tests for service reliability
+- `res`: Non code related assets for the whole project
 
 ## 🤖 M5Stack IoT Device
 
@@ -42,7 +43,7 @@ The M5Stack IoT device serves as a compact yet powerful sensor hub designed to c
 ### 🖼️ Dashboard Preview
 Below is a screenshot of the M5Stack device's dashboard, showcasing its capabilities in real-time data display:
 
-<img src="path_to_dashboard_screenshot.jpg" alt="M5Stack Device Dashboard" style="width:100%; max-width:600px;">
+<img src="path_to_dashboard_screenshot.jpg" alt="M5Stack Device Dashboard" style="width:50%;">
 
 ### 🛠 M5Stack Deployment
 To deploy the M5Stack device interface:
@@ -71,7 +72,7 @@ The backend service is the core of data management and interaction in our projec
   - `/fetch-bigquery-history-image`: Visualizes historical weather data through dynamically generated graphs.
 
 ### 🌍 API Interaction
-The backend extensively interacts with external APIs and internal data to provide comprehensive weather analytics and real-time updates. It also supports image and voice output to enhance user experience by presenting data in multiple formats.
+The backend extensively interacts with external APIs and internal data to provide comprehensive weather analytics and real-time updates. 
 
 ### 🌐 Service Deployment on Google Cloud Run
 To deploy the backend service on Google Cloud Run:
@@ -92,11 +93,11 @@ To deploy the backend service on Google Cloud Run:
 
 - `PROJECT_ID`: The unique identifier for your Google Cloud Project where all cloud resources are stored and managed.
 
-- `PROJECT_LOCATION`: The geographical region or location in Google Cloud where your project's resources, like BigQuery datasets, are hosted for regulatory or latency considerations.
+- `PROJECT_LOCATION`: The geographical region or location of the Google Cloud project. 
 
 - `DATASET_NAME`: The name of the BigQuery dataset within your Google Cloud Project where all weather data is stored.
 
-- `WEATHER_TABLE`: The name of the table within the BigQuery dataset that specifically holds weather-related data such as temperatures and humidity levels.
+- `WEATHER_TABLE`: The name of the table within the BigQuery dataset that specifically holds weather-related data from M5Stack sensors and the weather API. 
 
 
 ## 🖥️ Online Dashboard
@@ -108,7 +109,6 @@ The online dashboard, developed using Plotly Dash and dash_bootstrap_components,
 - **Temperature and Humidity Monitoring**: Displays current indoor and outdoor temperature and humidity levels with dynamic gauges and thermometers.
 - **Average Weather Plots**: Visualizes daily average temperature and humidity with interactive graphs.
 - **Historical Data Exploration**: Allows users to select dates and graph types to review past weather conditions.
-- **Responsive Design**: Ensures the dashboard is accessible and functional on various devices and screen sizes.
 
 ### 🌐 Access the Dashboard
 The dashboard can be accessed online [here](https://final-project-dashboard-c7loi7tmea-oa.a.run.app).
@@ -116,7 +116,7 @@ The dashboard can be accessed online [here](https://final-project-dashboard-c7lo
 ### 🖼️ Dashboard Screenshot
 Below is a screenshot of the online dashboard, illustrating the layout and design of the user interface:
 
-<img src="res/readme_resources/dashboard_screenshot.png" alt="Online Weather Dashboard" style="width:50%;">
+<img src="res/readme_resources/dashboard_screenshot.png" alt="Online Weather Dashboard" style="width:70%;">
 
 ### 🖥️ Dashboard Deployment on Google Cloud Run
 To deploy the dashboard on Google Cloud Run:
@@ -144,8 +144,10 @@ To deploy the dashboard on Google Cloud Run:
 ### Mykhailo Zotov (wildchilling)
 **Contributions**:
 - Developed and deployed the web dashboard using Plotly Dash to Google Cloud Platform.
-- Designed the overall architecture of the project, decoupled various parts of the codebase to enhance modularity and maintainability and designed this readme.
 - Took over the development of the web service from Philippe, integrating additional functionalities such as Text-to-Speech and Language Learning Models (LLMs).
+- Designed the overall architecture of the project, decoupled various parts of the codebase to enhance modularity and maintainability, created this readme.
 
+## 🍿 Video About the Project
+The Video explaining the project can be accessed by following [this link](#). 
 
 
