@@ -1,7 +1,7 @@
 # Indoor & Outdoor Weather Monitoring System
 
 ## 🌐 Project Overview
-This project implements an indoor/outdoor weather monitoring system using an M5Stack IoT device integrated with various sensors. The system gathers data from indoor conditions and outdoor weather information via an API, presenting it through a cloud-based dashboard developed with Plotly Dash and on the M5Stack device screen. The M5Stack device also has the ability to say out loud waether conditions when specific criteria are met. 
+This project implements an indoor/outdoor weather monitoring system using an M5Stack IoT device integrated with various sensors. The system gathers data from indoor conditions and outdoor weather information via an API, presenting it through a cloud-based dashboard developed with Plotly Dash and on the M5Stack device screen. The M5Stack device also has the ability to say out loud weather conditions when specific criteria are met. 
 
 ## 📁 Project Structure
 - `m5stack`: Contains scripts for the M5Stack device interface.
@@ -43,7 +43,7 @@ The M5Stack IoT device serves as a compact yet powerful sensor hub designed to c
 ### 🖼️ Dashboard Preview
 Below is a screenshot of the M5Stack device's dashboard, showcasing its capabilities in real-time data display:
 
-<img src="path_to_dashboard_screenshot.jpg" alt="M5Stack Device Dashboard" style="width:50%;">
+<img src="res/readme_resources/m5stack_preview.jpeg" alt="M5Stack Device Dashboard" style="width:70%;">
 
 ### 🛠 M5Stack Deployment
 To deploy the M5Stack device interface:
