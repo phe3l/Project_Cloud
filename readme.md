@@ -41,7 +41,7 @@ The M5Stack IoT device serves as a compact yet powerful sensor hub designed to c
 - **Alerts and Notifications**: Provides alerts for significant changes in environmental conditions, such as air quality or humidity levels.
 
 ### 🖼️ Dashboard Preview
-Below is a screenshot of the M5Stack device's dashboard, showcasing its capabilities in real-time data display:
+Below is a photo of the M5Stack device's dashboard, showcasing its capabilities in real-time data display.
 
 <img src="res/readme_resources/m5stack_preview.jpeg" alt="M5Stack Device Dashboard" style="width:50%;">
 
@@ -77,7 +77,7 @@ The backend extensively interacts with external APIs and internal data to provid
 ### 🌐 Service Deployment on Google Cloud Run
 To deploy the backend service on Google Cloud Run:
 
-1. Clone the project repository to your local machine.
+1. Clone the project repository using Google Cloud Console Cloud Shell.
 2. Navigate to the `service` directory.
 3. Build the Docker image for the service:
     ```
@@ -102,7 +102,7 @@ To deploy the backend service on Google Cloud Run:
 
 ## 🖥️ Online Dashboard
 
-The online dashboard, developed using Plotly Dash and dash_bootstrap_components, provides a comprehensive and interactive visualization of weather data collected both indoors and outdoors. It is designed to display current conditions, historical data, and averages in a clear and informative layout.
+The online dashboard, developed using **Plotly Dash** and **dash_bootstrap_components**, provides a comprehensive and interactive visualization of weather data collected both indoors and outdoors. It is designed to display current conditions, historical data, and averages in a clear and informative layout.
 
 ### 🌤️ Functionalities:
 - **Current Weather Display**: Shows real-time weather conditions, including air quality, visibility, and wind speed.
@@ -114,7 +114,7 @@ The online dashboard, developed using Plotly Dash and dash_bootstrap_components,
 The dashboard can be accessed online [here](https://final-project-dashboard-c7loi7tmea-oa.a.run.app).
 
 ### 🖼️ Dashboard Screenshot
-Below is a screenshot of the online dashboard, illustrating the layout and design of the user interface:
+Below is a screenshot of the online dashboard, illustrating the layout and design of the user interface.
 
 <img src="res/readme_resources/dashboard_screenshot.png" alt="Online Weather Dashboard" style="width:70%;">
 
@@ -122,7 +122,7 @@ Below is a screenshot of the online dashboard, illustrating the layout and desig
 To deploy the dashboard on Google Cloud Run:
 
 1. Ensure the service is already up and running.
-2. Navigate to the `online_dashboard` directory.
+2. Clone the project repository and navigate to the `online_dashboard` directory in GCP Console Cloud Shell.
 3. Build the Docker image for the dashboard:
     ```
     docker build -t eu.gcr.io/<your-project-id>/final_project_dashboard:latest .
@@ -137,17 +137,17 @@ To deploy the dashboard on Google Cloud Run:
 
 ### Philippe Megbemado (phe3l)
 **Contributions**:
-- Designed, developed, and deployed the M5Stack device UI and dashboard.
+- Designed, developed, and deployed the M5Stack device UI and functionalities.
 - Initiated the development of the web service with BigQuery functions and the weather API. Developed the backend functions that generate the visual graphs for displaying on the M5Stack device. 
 - Created the Google Cloud Platform project and configured the BigQuery database.
 
 ### Mykhailo Zotov (wildchilling)
 **Contributions**:
 - Developed and deployed the web dashboard using Plotly Dash to Google Cloud Platform.
-- Took over the development of the web service from Philippe, integrating additional functionalities such as Text-to-Speech and Language Learning Models (LLMs).
+- Took over the development of the web service, integrating additional functionalities such as Text-to-Speech and Language Learning Models (LLMs).
 - Designed the overall architecture of the project, decoupled various parts of the codebase to enhance modularity and maintainability, created this readme.
 
-## 🍿 Video About the Project
+## 🍿 Video on the Project
 The Video explaining the project can be accessed by following [this link](#). 
 
 
