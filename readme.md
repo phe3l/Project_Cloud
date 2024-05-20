@@ -43,7 +43,7 @@ The M5Stack IoT device serves as a compact yet powerful sensor hub designed to c
 ### 🖼️ Dashboard Preview
 Below is a screenshot of the M5Stack device's dashboard, showcasing its capabilities in real-time data display:
 
-<img src="res/readme_resources/m5stack_preview.jpeg" alt="M5Stack Device Dashboard" style="width:70%;">
+<img src="res/readme_resources/m5stack_preview.jpeg" alt="M5Stack Device Dashboard" style="width:50%;">
 
 ### 🛠 M5Stack Deployment
 To deploy the M5Stack device interface:
