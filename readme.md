@@ -22,7 +22,7 @@ This project implements an indoor/outdoor weather monitoring system using an M5S
   - `app.py`: Flask app entry point to manage middleware/services
   - `bigquery_client.py`: Manages BigQuery operations for data storage and retrieval.
   - `texttospeech_client.py`: Integrates text-to-speech functionality using Google APIs.
-  - `vertexai_client.py`: Handles interactions with Vertex AI for advanced analytics.
+  - `vertexai_client.py`: Handles interactions with Vertex AI LLM allowing to generate realistic weather descriptions.
   - `weather_client.py`: Fetches outdoor weather data from external APIs.
   - `unit_tests/`: Tests for service reliability
 - `res`: Non code related assets for the whole project

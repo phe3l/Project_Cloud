@@ -43,16 +43,4 @@ body {
     color: white !important;
 }
 
-/* Prevent text wrapping and ensure ellipsis for long text */
-.Select-option {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Ensure the dropdown menu doesn't change the width */
-.Select-menu {
-    width: 100%;
-}
-
 
