@@ -312,8 +312,6 @@ def fetch_bigquery_history():
         return jsonify({"error": str(e)}), 500
     
 
-
-
 @app.route('/fetch-bigquery-history-image', methods=['GET'])
 def fetch_bigquery_history_image():
     """Endpoint to fetch weather data history from BigQuery and generate a graph."""
@@ -324,6 +322,12 @@ def fetch_bigquery_history_image():
         
         # Convertir les données en DataFrame
         df = pd.DataFrame(data)
+
+        # Assurez-vous que les colonnes sont du bon type de données
+        df['date'] = pd.to_datetime(df['date'])  # Convertir la colonne date en datetime
+        df['avg_temp'] = pd.to_numeric(df['avg_temp'])  # Convertir la colonne avg_temp en numérique
+        df['avg_humidity'] = pd.to_numeric(df['avg_humidity'])  # Convertir la colonne avg_humidity en numérique
+        df['avg_co2'] = pd.to_numeric(df['avg_co2'])  # Convertir la colonne avg_co2 en numérique
 
         # Configurer la taille du graphe
         fig, axs = plt.subplots(3, 1, figsize=(3.2, 1.65), sharex=True)  # Réduire la taille de l'image
@@ -342,31 +346,37 @@ def fetch_bigquery_history_image():
         axs[1].xaxis.set_visible(False)
         
         # Tracer la température intérieure
-        axs[0].plot(df['date'], df['avg_temp'], label='Température intérieure (°C)', marker='o', markersize=4, linewidth=1, color='tab:blue')  # Augmenter la taille des marqueurs et la largeur des lignes
-        axs[0].set_ylabel('T.°C', fontsize=9, color='white')  # Augmenter la taille du texte
+        axs[0].plot(df['date'], df['avg_temp'], label='Température intérieure (°C)', marker='o', markersize=4, linewidth=1, color='#e058a7')  # Augmenter la taille des marqueurs et la largeur des lignes
+        axs[0].set_ylabel('°C', fontsize=8, color='white')  # Augmenter la taille du texte
         axs[0].yaxis.set_ticks([])
+        axs[0].yaxis.set_label_coords(-0.05, 0.5)  # Ajuster la position des étiquettes de l'axe y
+        axs[0].yaxis.label.set_rotation(0)  # Rendre les étiquettes de l'axe y horizontales
 
         # Afficher les valeurs pour chaque point (déplacer les valeurs un peu plus haut et arrondir les valeurs)
         for i in range(len(df['date'])):
             axs[0].annotate(f"{int(df['avg_temp'].iloc[i])}", (df['date'].iloc[i], df['avg_temp'].iloc[i] + 0.5), fontsize=8, color='white')  # Augmenter la taille du texte
 
         # Tracer l'humidité intérieure
-        axs[1].plot(df['date'], df['avg_humidity'], label='Humidité intérieure (%)', marker='o', markersize=4, linewidth=1, color='tab:orange')  # Augmenter la taille des marqueurs et la largeur des lignes
-        axs[1].set_ylabel('H.%', fontsize=9, color='white')  # Augmenter la taille du texte
+        axs[1].plot(df['date'], df['avg_humidity'], label='Humidité intérieure (%)', marker='o', markersize=4, linewidth=1, color='#007afe')  # Augmenter la taille des marqueurs et la largeur des lignes
+        axs[1].set_ylabel('H.%', fontsize=8, color='white')  # Augmenter la taille du texte
         axs[1].yaxis.set_ticks([])
+        axs[1].yaxis.set_label_coords(-0.03, 0.5)  # Ajuster la position des étiquettes de l'axe y
+        axs[1].yaxis.label.set_rotation(0)  # Rendre les étiquettes de l'axe y horizontales
 
         # Afficher les valeurs pour chaque point (déplacer les valeurs un peu plus haut et arrondir les valeurs)
         for i in range(len(df['date'])):
-            axs[1].annotate(f"{int(df['avg_humidity'].iloc[i])}", (df['date'].iloc[i], df['avg_humidity'].iloc[i] + 0.5), fontsize=8, color='white')  # Augmenter la taille du texte
+            axs[1].annotate(f"{int(df['avg_humidity'].iloc[i])}", (df['date'].iloc[i], df['avg_humidity'].iloc[i] - 6.5), fontsize=8, color='white')  # Augmenter la taille du texte
 
         # Tracer la qualité de l'air intérieur
-        axs[2].plot(df['date'], df['avg_co2'], label='Qualité de l\'air intérieur (CO2)', marker='o', markersize=4, linewidth=1, color='tab:green')  # Augmenter la taille des marqueurs et la largeur des lignes
-        axs[2].set_ylabel('CO2', fontsize=9, color='white')  # Augmenter la taille du texte
+        axs[2].plot(df['date'], df['avg_co2'], label='Qualité de l\'air intérieur (CO2)', marker='o', markersize=4, linewidth=1, color='#4cda63')  # Augmenter la taille des marqueurs et la largeur des lignes
+        axs[2].set_ylabel('CO2', fontsize=8, color='white')  # Augmenter la taille du texte
         axs[2].yaxis.set_ticks([])
+        axs[2].yaxis.set_label_coords(-0.03, 0.5)  # Ajuster la position des étiquettes de l'axe y
+        axs[2].yaxis.label.set_rotation(0)  # Rendre les étiquettes de l'axe y horizontales
 
         # Afficher les valeurs pour chaque point (déplacer les valeurs un peu plus haut et arrondir les valeurs)
         for i in range(len(df['date'])):
-            axs[2].annotate(f"{int(df['avg_co2'].iloc[i])}", (df['date'].iloc[i], df['avg_co2'].iloc[i] + 5), fontsize=8, color='white')  # Augmenter la taille du texte
+            axs[2].annotate(f"{int(df['avg_co2'].iloc[i])}", (df['date'].iloc[i], df['avg_co2'].iloc[i] + 10), fontsize=8, color='white')  # Augmenter la taille du texte
 
         # Configurer les labels de l'axe x
         axs[2].xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
@@ -386,6 +396,7 @@ def fetch_bigquery_history_image():
     except Exception as e:
         logging.error(f"Error fetching weather data history: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)

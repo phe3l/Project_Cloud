@@ -1,59 +1,66 @@
-from m5stack_ui import *
-from uiflow import *
-import network
-import socket
-import time
+from m5stack_ui import M5Screen, M5Label, FONT_MONT_14, FONT_MONT_34,FONT_MONT_10
 import unit
+from network import WLAN, STA_IF
 import urequests
+import utime as time
+import ntptime
 from machine import RTC
-from libs.image_plus import *
-import utime
-from m5stack import speaker
+import gc
+import socket
 import struct
+from m5stack import lcd, rgb, speaker, btnB
 import os
 
 # Initialize the M5Stack screen
 screen = M5Screen()
 screen.clean_screen()
-screen.set_screen_bg_color(0xd5d5d5)
+screen.set_screen_bg_color(0x000000)
+rgb.setBrightness(10)
 
 # Configure sensor units connected to ports
 environmental_sensor = unit.get(unit.ENV3, unit.PORTA)  # Environmental sensor (temperature, humidity)
 motion_sensor = unit.get(unit.PIR, unit.PORTB)  # PIR motion sensor
-gas_detector = unit.get(unit.TVOC, unit.PORTC)  # TVOC gas detector
+gas_detector = unit.get(unit.TVOC, unit.PORTC)  # CO2 gas detector
 
 # Create labels to display sensor values
-datetime_label = M5Label('0000/00/00 - 00:00', x=15, y=0, color=0x000000, font=FONT_MONT_14)
-wifi_status_label = M5Label('.....', x=260, y=0, color=0x000000, font=FONT_MONT_14)
-temperature_inside_label = M5Label('00.00 °C', x=15, y=33, color=0x000, font=FONT_MONT_34)
-humidity_inside_label = M5Label('Humidity: 00.00%', x=15, y=86, color=0x000, font=FONT_MONT_14)
-humidity_inside_alert_label = M5Label('', x=150, y=86, color=0xff0000, font=FONT_MONT_14)
+datetime_label = M5Label('------- 00.00.0000 - 00:00', x=10, y=0, color=0xffffff, font=FONT_MONT_14)
+wifi_status_label = M5Label('....', x=285, y=0, color=0xffffff, font=FONT_MONT_10)
+motion_status_label = M5Label('NM', x=255, y=0, color=0xffffff, font=FONT_MONT_10)
 
-tvoc_label = M5Label('Gas TVOC: 0ppb', x=15, y=107, color=0x000, font=FONT_MONT_14)
-tvoc_inside_alert_label = M5Label('', x=150, y=107, color=0xff0000, font=FONT_MONT_14)
+temperature_inside_label = M5Label('00.00°C', x=22, y=30, color=0xcd8100, font=FONT_MONT_34)
+humidity_inside_label = M5Label('Humidity: 00.00%', x=170, y=30, color=0xffffff, font=FONT_MONT_14)
+tvoc_label = M5Label('C02: 0ppm', x=170, y=50, color=0xffffff, font=FONT_MONT_14)
 
-motion_status_label = M5Label('No', x=275, y=20, color=0x000)
+#lcd.image(0, 79, '/flash/res/default_current_weather.png')
+#lcd.image(0, 150, '/flash/res/default_future_weather.png')
+image1 = M5Img("/flash/res/default_current_weather.png", x=0, y=80)
+image2 = M5Img("/flash/res/default_future_weather.png", x=0, y=145)
+image3 = M5Img("/flash/res/fetch-bigquery-history-image.png", x=0, y=80)
+image3.set_hidden(True) 
 
-# Outdoor information and forecasts
-visual_separator = M5Line(x1=15, y1=135, x2=305, y2=135, color=0x9c9c9c, width=1, parent=None)
 
-outdoor_weather_image = M5Img("res/03d.png", x=165, y=25, parent=None)
-outdoor_info_label = M5Label('Updating Outdoor Weather..', x=15, y=148, color=0x000, font=FONT_MONT_14, parent=None)
-outdoor_temp_label = M5Label('', x=185, y=148, color=0x000, font=FONT_MONT_14, parent=None)
-outdoor_humidity_label = M5Label('', x=254, y=148, color=0x000, font=FONT_MONT_14, parent=None)
-    
-forecast_image = M5Img("res/03d.png", x=30, y=190)
-forecast_title_label = M5Label("Loading tomorrow's forecast...", x=15, y=175, color=0x000, font=FONT_MONT_14, parent=None)
-forecast_temp_label = M5Label('', x=225, y=200, color=0x000, font=FONT_MONT_22, parent=None)
-forecast_main_label = M5Label('', x=108, y=196, color=0x000, font=FONT_MONT_14, parent=None)
-forecast_desc_label = M5Label('', x=108, y=215, color=0x000, font=FONT_MONT_14, parent=None)
-
-# Pending data label
-pending_data_label = M5Label('', x=220, y=0, color=0x000000, font=FONT_MONT_14, parent=None)
+# Error label & pending data label
+pending_data_label = M5Label('', x=245, y=0, color=0xffffff, font=FONT_MONT_10)
+error_label = M5Label('', x=10, y=16, color=0xffffff, font=FONT_MONT_10)
 
 # WiFi credentials for network connection
-wifi_credentials = [('iot-unil', '4u6uch4hpY9pJ2f9'),('TP-Link_76C4', '49032826')]
-flask_url = "http://192.168.0.105:8080"
+#wifi_credentials = ('iot-unil', '4u6uch4hpY9pJ2f9')
+wifi_credentials = ('TP-Link_IoT_76C4', '49032826')
+flask_url = "http://192.168.0.102:8080"
+
+# Initialize WLAN
+wlan = WLAN(STA_IF)
+wlan.active(True)
+
+# Variables to store the state of the program
+device_public_ip = None
+last_motion_state = "NM"
+last_sound_played_timestamp = 0
+sound_playback_interval = 90
+images_visible = True
+
+# List to accumulate data that will be sent to a server or processed further
+outgoing_data_buffer = []
 
 # Constants for NTP time synchronization
 NTP_DELTA = 3155673600  # 1900-01-01 00:00:00 to 2000-01-01 00:00:00
@@ -61,328 +68,448 @@ NTP_QUERY = b'\x1b' + 47 * b'\0'
 NTP_SERVER = 'ch.pool.ntp.org'  # NTP server for Switzerland
 TIMEZONE_OFFSET = 2 * 3600  # Timezone offset for Central European Time (CET)
 
-# Variables to store the state of the program
-device_public_ip = None
-last_motion_state = "No"
-last_sound_played_timestamp = 0
-sound_playback_interval = 60
-
-# List to accumulate data that will be sent to a server or processed further
-outgoing_data_buffer  = []
-
-
-# Function to connect to WiFi using provided credentials 
-start_time_test = time.time() # UNIQUEMENT POUR LES TESTS
+def initialize_wifi_and_time(wifi_credentials):
+    """
+    Initialize WiFi and synchronize time.
+    """
+    global wlan, device_public_ip
+    if connect_wifi(wifi_credentials):
+        if get_device_public_ip() and sync_time_with_ntp():
+            wifi_status_label.set_text('W+T')
+        else:
+            wifi_status_label.set_text('W-T')
+    else:
+        wifi_status_label.set_text('-W')
+        device_public_ip = None
 
 def connect_wifi(wifi_credentials):
-    # UNIQUEMENT POUR LES TESTS
-    #if time.time() - start_time_test < 2 * 60:
-    #    return None
-     
-    wlan = network.WLAN(network.STA_IF)
+    """
+    Connect to the WiFi using provided credentials.
+    """
+    global wlan
     wlan.active(True)
     if wlan.isconnected():
-        return wlan
-
-    timeout = 15  # Total time allowed for attempts
-
-    for ssid, password in wifi_credentials:
-        start_time = time.time()
-        wlan.connect(ssid, password)
-        while not wlan.isconnected():
-            if time.time() - start_time > timeout:
-                wlan.disconnect()
-                break
-            time.sleep(1)
-
-        if wlan.isconnected():
-            return wlan
-    return None
-
-# Function to get the public IP address of the device
-def get_device_public_ip():
-    global device_public_ip
-    try:
-        response = urequests.get('http://api.ipify.org/?format=text')
-        device_public_ip = response.text
-        response.close()
-        wifi_status_label.set_text('Wi-Fi')
-    except Exception as e:
-        wifi_status_label.set_text('No Wi-Fi')
-    finally:
-        if response:
-            response.close()
-
-# Function to get the current NTP time from a given host
-def get_ntp_time(host):
-    addr = socket.getaddrinfo(host, 123)[0][-1]
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.sendto(NTP_QUERY, addr)
-        msg, _ = s.recvfrom(48)
-    finally:
-        s.close()
-    val = struct.unpack('!I', msg[40:44])[0]
-    return val - NTP_DELTA
-
-# Function to get the current local time and update the date_time_label with it
-def get_current_time():
-    ntp_time = get_ntp_time(NTP_SERVER)
-    ntp_time += TIMEZONE_OFFSET
-    local_time = utime.localtime(ntp_time)
-    rtc = RTC()
-    rtc.datetime((local_time[0], local_time[1], local_time[2], 0, local_time[3], local_time[4], local_time[5], 0))
-
-    datetime_label.set_text('{}/{}/{} - {}:{}'.format(local_time[0], local_time[1], local_time[2], local_time[3], local_time[4]))
-
-
-# Fetches the current weather information using a given IP address.
-def get_current_weather(ip):
-    response = None
-    try:
-        url = "{}/current-weather".format(flask_url)
-        response = urequests.post(url, json={"ip": ip})
-        if response.status_code == 200:
-            weather_data = response.json()
-            outdoor_temp = weather_data['main']['temp']
-            outdoor_humidity = weather_data['main']['humidity']
-            icon_code = weather_data['weather'][0]['icon']
-            return outdoor_temp, outdoor_humidity, icon_code
-        else:
-            return None
-    except Exception as e:
-        return None
-    finally:
-        if response:
-            response.close()
-
-# Fetches the future weather information using a given IP address.
-def get_future_weather(ip):
-    response = None
-    try:
-        url = "{}/future-weather".format(flask_url)
-        response = urequests.post(url, json={"ip": ip})
-        if response.status_code == 200:
-            weather_data = response.json()
-            # The weather forecast for 24 hours ahead is in the 8th position (the API returns forecasts every 3 hours)
-            if len(weather_data['list']) >= 8:
-                eighth_entry = weather_data['list'][7]
-                future_temp = eighth_entry['main']['temp']
-                weather_main = eighth_entry['weather'][0]['main']
-                weather_description = eighth_entry['weather'][0]['description']
-                icon_code = eighth_entry['weather'][0]['icon']
-                return future_temp, weather_main, weather_description, icon_code, 
-            else:
-                return None, None, None, None
-        else:
-            return None, None, None, None
-    except Exception as e:
-        return None, None, None, None
-    finally:
-        if response:
-            response.close()
-
-# Function to send data to the server
-def send_data(ip, outdoor_temp, outdoor_humidity):
-    # Get the current local time
-    local_time = utime.localtime()
-    date = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
-    time = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
-
-    # Prepare the data to be sent
-    data = {
-        "values": {
-            "indoor_temp": environmental_sensor.temperature,
-            "indoor_humidity": environmental_sensor.humidity,
-            "ip_address": ip,
-            "outdoor_temp": outdoor_temp,
-            "outdoor_humidity": outdoor_humidity,
-            "indoor_air_quality": gas_detector.TVOC,  
-            "date": date,
-            "time": time
-        }
-    }
-
-    response = None
-    try:
-        url = "{}/send-to-bigquery".format(flask_url)
-        response = urequests.post(url, json=data)
-    except Exception as e:
-        print("Failed to send data to BigQuery:", str(e))
-    finally:
-        if response:
-            response.close()
-
-# Function to send pending data to the server
-def send_pending_data(ip, environmental_sensor_temperature, environmental_sensor_humidity, gas_detector):
-    # Get the current local time
-    local_time = utime.localtime()
-
-    # Format the date and time
-    date = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
-    time = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
-
-    # Prepare the data to be sent
-    data = {
-        "values": {
-            "indoor_temp": environmental_sensor.temperature,
-            "indoor_humidity": environmental_sensor.humidity,
-            "ip_address": ip,
-            "indoor_air_quality": gas_detector,  
-            "date": date,
-            "time": time
-        }
-    }
-
-    response = None
-    try:
-        url = "{}/send-to-bigquery".format(flask_url)
-        response = urequests.post(url, json=data)
-    except Exception as e:
-        print("Failed to send data to BigQuery:", str(e))
-    finally:
-        if response:
-            response.close()
-
-# Function to generate a spoken description of the current weather
-def get_weather_spoken(ip):
-    url = "{}/generate-current-weather-spoken".format(flask_url)
-    response = urequests.post(url, json={"ip": ip})
-    if response.status_code == 200:
-        with open('/flash/weather.mp3', 'wb') as f:
-            f.write(response.content)
-        response.close()
         return True
-    else:
-        return False
 
-# Function to play the spoken weather description
+    ssid, password = wifi_credentials
+    timeout = 30  # Timeout in seconds
+    start_time = time.time()
+    wlan.connect(ssid, password)
+    error_label.set_text('Trying to connect to WiFi...{}'.format(ssid))
+    while not wlan.isconnected() and (time.time() - start_time < timeout):
+        time.sleep(1)
+
+    if wlan.isconnected():
+        error_label.set_text('Network config: {}'.format(wlan.ifconfig()))
+    else:
+        error_label.set_text('Failed to connect to WiFi')
+    return wlan.isconnected()
+
+def get_device_public_ip():
+    """
+    Get the public IP address of the device.
+    """
+    global device_public_ip
+    response = None
+    retries = 3
+    while retries > 0:
+        try:
+            response = urequests.get('http://api.ipify.org/?format=text')
+            device_public_ip = response.text
+            return True
+        except Exception as e:
+            error_label.set_text('Error getting IP: {}'.format(e))
+            retries -= 1
+            time.sleep(5)  # Wait before retrying
+        finally:
+            if response:
+                response.close()
+    return False
+
+def sync_time_with_ntp(retries=3):
+    """
+    Synchronize the time with an NTP server.
+    """
+    while retries > 0:
+        try:
+            # Get the NTP time
+            addr = socket.getaddrinfo(NTP_SERVER, 123)[0][-1]
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                s.settimeout(10)
+                s.sendto(NTP_QUERY, addr)
+                msg, _ = s.recvfrom(48)
+            finally:
+                s.close()
+            
+            ntp_time = struct.unpack('!I', msg[40:44])[0] - NTP_DELTA
+            ntp_time += TIMEZONE_OFFSET
+
+            # Set the RTC
+            local_time = time.localtime(ntp_time)
+            rtc = RTC()
+            rtc.datetime((local_time[0], local_time[1], local_time[2], 0, local_time[3], local_time[4], local_time[5], 0))
+            return True
+        except Exception as e:
+            error_label.set_text('Error setting RTC time: {}'.format(e))
+            retries -= 1
+            time.sleep(5)  # Wait before retrying
+    return False
+
+def update_datetime_label():
+    """
+    Update the datetime label with the current time.
+    """
+    try:
+        local_time = time.localtime()
+        days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        day_of_week = days_of_week[local_time[6]]  # local_time[6] is the weekday (0=Monday, 6=Sunday)
+        
+        formatted_date = '{} {:02d}.{:02d}.{:04d} - {:02d}:{:02d}'.format(
+            day_of_week, local_time[2], local_time[1], local_time[0], local_time[3], local_time[4]
+        )
+        
+        datetime_label.set_text(formatted_date)
+    except Exception as e:
+        error_label.set_text('Error updating time: {}'.format(e))
+
+
+def get_current_weather(ip):
+    """
+    Fetch the image of the current weather information using the device's public IP address.
+    """
+    response = None
+    try:
+        url = "{}/generate-weather-image".format(flask_url)
+        response = urequests.post(url, json={"ip": ip})
+        if response.status_code == 200:
+            # Sauvegarder l'image dans un fichier temporaire
+            image_path = '/flash/res/current_weather.png'
+            with open(image_path, 'wb') as f:
+                f.write(response.content)
+
+            # Afficher l'image sur l'écran M5Stack
+            image1.set_img_src(image_path)
+            #lcd.image(0, 79, image_path)  # Afficher l'image
+            return True
+        else:
+            error_label.set_text('Error getting weather: {}'.format(response.status_code))
+            return False
+    except Exception as e:
+        error_label.set_text('Error getting weather: {}'.format(e))
+        return False
+    finally:
+        if response:
+            response.close()
+
+def get_future_weather(ip):
+    """
+    Fetch the image of the current weather information using the device's public IP address.
+    """
+    response = None
+    try:
+        url = "{}/generate-future-weather-image".format(flask_url)
+        response = urequests.post(url, json={"ip": ip})
+        if response.status_code == 200:
+            # Sauvegarder l'image dans un fichier temporaire
+            image_path = '/flash/res/future_weather.png'
+            with open(image_path, 'wb') as f:
+                f.write(response.content)
+
+            # Afficher l'image sur l'écran M5Stack
+            #lcd.image(0, 150, image_path)  # Afficher l'image
+            image2.set_img_src(image_path)
+            return True
+        else:
+            error_label.set_text('Error getting weather: {}'.format(response.status_code))
+            return False
+    except Exception as e:
+        error_label.set_text('Error getting weather: {}'.format(e))
+        return False
+    finally:
+        if response:
+            response.close()
+
+def fetch_bigquery_history_image():
+    """
+    Fetch the image of the BigQuery weather data history.
+    """
+    response = None
+    try:
+        url = "{}/fetch-bigquery-history-image".format(flask_url)
+        response = urequests.get(url)
+        if response.status_code == 200:
+            # Sauvegarder l'image dans un fichier temporaire
+            image_path = '/flash/res/fetch-bigquery-history-image.png'
+            with open(image_path, 'wb') as f:
+                f.write(response.content)
+
+            # Afficher l'image sur l'écran M5Stack
+            image3.set_img_src(image_path)
+            return True
+        else:
+            error_label.set_text('Error fetching history: {}'.format(response.status_code))
+            return False
+    except Exception as e:
+        error_label.set_text('Error fetching history: {}'.format(e))
+        return False
+    finally:
+        if response:
+            response.close()
+
+def send_data(ip):
+    """
+    Send sensor data to the server.
+    """
+    response = None
+    local_time = time.localtime()
+    date_str = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
+    time_str = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
+
+    data = {
+        "values": {
+            "ip_address": ip,
+            "date": date_str,
+            "time": time_str,
+            "indoor_temp": environmental_sensor.temperature,
+            "indoor_humidity": environmental_sensor.humidity,
+            "indoor_air_quality": gas_detector.eCO2
+        }
+    }
+
+    try:
+        url = "{}/send-to-bigquery".format(flask_url)
+        response = urequests.post(url, json=data)
+        if response.status_code == 200:
+            error_label.set_text('Data sent successfully {}'.format({time_str}))
+        else:
+            error_label.set_text('Error sending data: {}'.format(response.status_code))
+    except Exception as e:
+        error_label.set_text('Error sending data: {}'.format(e))
+    finally:
+        if response:
+            response.close()
+
+def send_pending_data(ip, pending_data_buffer, reconnection_time):
+    """
+    Send pending sensor data to the server.
+    """
+    interval_between_data = 120  # Interval between data additions in seconds
+    num_data_points = len(pending_data_buffer)
+
+    for i, data_point in enumerate(pending_data_buffer):
+        # Calculate the timestamp for the data point
+        data_time = reconnection_time - ((num_data_points - 1 - i) * interval_between_data)
+        local_time = time.localtime(data_time)
+        date_str = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
+        time_str = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
+
+        data = {
+            "values": {
+                "ip_address": ip,
+                "date": date_str,
+                "time": time_str,
+                "indoor_temp": data_point[0],
+                "indoor_humidity": data_point[1],
+                "indoor_air_quality": data_point[2]
+            }
+        }
+
+        try:
+            url = "{}/send-pending-to-bigquery".format(flask_url)
+            response = urequests.post(url, json=data)
+            if response.status_code == 200:
+                error_label.set_text('Pending data sent successfully')
+            else:
+                error_label.set_text('Error sending pending data: {}'.format(response.status_code))
+        except Exception as e:
+            error_label.set_text('Error sending pending data: {}'.format(e))
+        finally:
+            if response:
+                response.close()
+
+# Callback function to handle WiFi reconnection data sending
+def on_wifi_reconnected():
+    global outgoing_data_buffer
+    if outgoing_data_buffer:
+        send_pending_data(device_public_ip, outgoing_data_buffer, time.time())
+        outgoing_data_buffer.clear()
+
+def get_weather_spoken(ip):
+    """
+    Generate a spoken description of the current weather.
+    """
+    url = "{}/generate-current-weather-spoken".format(flask_url)
+    response = None
+    try:
+        response = urequests.post(url, json={"ip": ip})
+        if response.status_code == 200:
+            with open('/flash/weather.mp3', 'wb') as f:
+                f.write(response.content)
+            return True
+        else:
+            error_label.set_text('Error generating spoken weather: {}'.format(response.status_code))
+            return False
+    except Exception as e:
+        error_label.set_text('Error in get_weather_spoken: {}'.format(e))
+        return False
+    finally:
+        if response:
+            response.close()
+
+
 def play_weather_spoken():
-    if 'weather.mp3' in os.listdir('/flash'):
-        speaker.playWAV("/flash/weather.mp3", volume=6)
+    """
+    Play the spoken weather description if the file exists.
+    """
+    try:
+        if 'weather.mp3' in os.listdir('/flash'):
+            speaker.playWAV("/flash/weather.mp3", volume=6)
+        else:
+            error_label.set_text('weather.mp3 not found')
+    except Exception as e:
+        error_label.set_text('Error in play_weather_spoken: {}'.format(e))
 
 # Function to update the sound playback based on the motion sensor state
 def update_sound():
     global last_motion_state, last_sound_played_timestamp, sound_playback_interval, device_public_ip
-    current_motion_state = "Yes" if motion_sensor.state == 1 else "No"
+    current_motion_state = "M" if motion_sensor.state == 1 else "NM"
     motion_status_label.set_text('{}'.format(current_motion_state))
 
     current_time = time.time()
-    if current_motion_state == "Yes" and last_motion_state == "No":
+    if current_motion_state == "M" and last_motion_state == "NM":
         if current_time - last_sound_played_timestamp >= sound_playback_interval:
             if get_weather_spoken(device_public_ip):
                 play_weather_spoken()
             last_sound_played_timestamp = current_time
     last_motion_state = current_motion_state
 
-
-
 def check_and_alert(env3_hum, gas_value):
+    alert_triggered = False
 
-    if env3_hum < 30.00:
-        humidity_inside_alert_label.set_text('Humidity Too LOW')
-    elif env3_hum > 60.00:
-        humidity_inside_alert_label.set_text('Humidity Too HIGH')
+    # Check humidity
+    if env3_hum > 60.00:
+        humidity_inside_label.set_text_color(0xFF0000)
+        alert_triggered = True
+    elif env3_hum < 40.00:
+        humidity_inside_label.set_text_color(0x0000FF)
+        alert_triggered = True
     else:
-        humidity_inside_alert_label.set_text('')
+        humidity_inside_label.set_text_color(0xffffff)  
 
-    if gas_value > 100: 
-        tvoc_inside_alert_label.set_text('Poor Air Quality')
+    # Check gas value
+    if gas_value > 1000:
+        tvoc_label.set_text_color(0xFF0000)
+        alert_triggered = True
     else:
-        tvoc_inside_alert_label.set_text('')
+        tvoc_label.set_text_color(0xffffff)  
+    
+    # Trigger LED blink if alert is triggered
+    if alert_triggered:
+        blink_red_led(duration=9, interval=0.5) 
+
+    return alert_triggered
+
+def blink_red_led(duration, interval):
+    """
+    Blink the red LED for a specified duration and interval.
+    """
+    end_time = time.time() + duration
+    while time.time() < end_time:
+        rgb.setColorAll(0xFF0000)  # Turn LED red
+        time.sleep(interval)
+        rgb.setColorAll(0x000000)  # Turn LED off
+        time.sleep(interval)
 
 # Function to update the sensor display values
 def update_sensor_display():
     env3_temp = environmental_sensor.temperature 
-    temperature_inside_label.set_text('{:.2f} °C'.format(env3_temp))
+    temperature_inside_label.set_text('{:.2f}°C'.format(env3_temp))
 
     env3_hum = environmental_sensor.humidity 
     humidity_inside_label.set_text('Humidity: {:.2f} %'.format(env3_hum))
 
-    gas_value = gas_detector.TVOC
-    tvoc_label.set_text('Gas TVOC: {} ppb'.format(gas_value))
+    gas_value = gas_detector.eCO2
+    tvoc_label.set_text('C02: {} ppm'.format(gas_value))
 
     check_and_alert(env3_hum, gas_value)
-    
 
-# Function to update the API display values
-def update_api_display(current_weather, futur_weather):
-    global outdoor_weather_image, forecast_image
+def toggle_images():
+    global images_visible
+    if images_visible:
+        image1.set_hidden(True)  # Cacher la première image
+        image2.set_hidden(True)  # Cacher la deuxième image
+        image3.set_hidden(False)
+        images_visible = False
+    else:
+        image1.set_hidden(False)
+        image2.set_hidden(False)
+        image3.set_hidden(True)
+        images_visible = True
 
-    outdoor_temp_label.set_text('{:.2f} °C'.format(current_weather[0]))
-    outdoor_humidity_label.set_text('{:.2f} %'.format(current_weather[1]))
+# Initialize WiFi and time synchronization
+initialize_wifi_and_time(wifi_credentials)
 
-    del outdoor_weather_image
-    outdoor_weather_image = M5Img('res/{}.png'.format(current_weather[2]), x=165, y=25, parent=None)
+btnB.wasPressed(toggle_images)
 
-    forecast_title_label.set_text("Tomorrow's forecast:")
-    del forecast_image
-    forecast_image = M5Img('res/{}.png'.format(futur_weather[3]), x=30, y=190)
-    forecast_temp_label.set_text('{:.2f} °C'.format(futur_weather[0]))
-    forecast_main_label.set_text('{}'.format(futur_weather[1]))
-    forecast_desc_label.set_text('{}'.format(futur_weather[2]))
-
-# Main loop of the devic
+# Main loop of the device
 def main_loop():
     global device_public_ip, outgoing_data_buffer 
     
     # Initial forced updates
-    api_last_update = time.time() - 600  # Force immediate update at start
     time_last_update = time.time() - 60  # Force immediate time update at start
-    data_last_sent = time.time()  
+    data_last_sent = time.time() - 120  # Force data send 3 minutes after start
+    weather_last_checked = time.time() - 120  # Force immediate weather check at start
+    future_last_checked = time.time() - 3600  # Force immediate weather check at start
+    data_last_history = time.time() - 3600  # Force immediate history check at start
 
     while True:
-        now = time.time()
-        update_sensor_display()
-        
-        wlan = connect_wifi(wifi_credentials)
-        if wlan:
-            if device_public_ip is None:
-                get_device_public_ip()
-
-            # If connection is restored, send all stored data
-            for data in outgoing_data_buffer :
-                send_pending_data(device_public_ip, data[0], data[1], data[2])
-            # Clear the buffer after sending data
-            outgoing_data_buffer = []
-            pending_data_label.set_text('{}'.format(len(outgoing_data_buffer) if len(outgoing_data_buffer) > 0 else ""))
+        try:
+            update_sensor_display()
+            if wlan.isconnected():
+                if outgoing_data_buffer:
+                    on_wifi_reconnected()
             
-            update_sound()
+                update_datetime_label()
+                update_sound()
 
-            # Update the current time every 60 seconds
-            if now - time_last_update > 60:
-                get_current_time()
-                time_last_update = now
+                now = time.time()
 
-            # Update weather data every 10 minutes (600 seconds)
-            if now - api_last_update > 600:
-                current_weather = get_current_weather(device_public_ip)
-                futur_weather = get_future_weather(device_public_ip)
-                if current_weather and futur_weather:
-                    outdoor_info_label.set_text('Outdoor Weather:')
-                    update_api_display(current_weather, futur_weather)
-                    api_last_update = now
+                # Check if it's time to fetch the current weather image
+                if now - weather_last_checked >= 120:
+                    if get_current_weather(device_public_ip):
+                        weather_last_checked = now
 
-            # Send data every 2 minutes (120 seconds)
-            if now - data_last_sent > 120:
-                send_data(device_public_ip, current_weather[0], current_weather[1])
-                data_last_sent = now
-        else:
-            wifi_status_label.set_text('No Wi-Fi')
-            device_public_ip = None
+                # Check if it's time to fetch the current weather image
+                if now - future_last_checked >= 3600:
+                    if get_future_weather(device_public_ip):
+                        future_last_checked = now
 
-            # Append sensor data to buffer if not sent after 120 seconds         
-            if now - data_last_sent > 120:
-                outgoing_data_buffer.append((environmental_sensor.temperature, environmental_sensor.humidity, gas_detector.TVOC))
-                data_last_sent = now
-            
-            pending_data_label.set_text('{}'.format(len(outgoing_data_buffer )))
+                # Check if it's time to send data
+                if now - data_last_sent >= 300:  # 300 seconds = 5 minutes
+                    if wlan.isconnected():
+                        send_data(device_public_ip)
+                        data_last_sent = now
 
-        # Calculate the time to sleep, ensure it's not negative
-        next_action = min(time_last_update + 60, api_last_update + 300, data_last_sent + 120)
-        sleep_time = max(5, next_action - now)
-        #time.sleep(sleep_time)
-        time.sleep(1)
+                if now - data_last_history >= 3600:
+                    if fetch_bigquery_history_image():
+                        data_last_history = now
 
+            else:
+                # Reconnect to WiFi if disconnected
+                initialize_wifi_and_time(wifi_credentials)
+
+                # Append sensor data to buffer if not sent after 120 seconds         
+                if now - data_last_sent > 120:
+                    outgoing_data_buffer.append((environmental_sensor.temperature, environmental_sensor.humidity, gas_detector.eCO2))
+                    data_last_sent = now
+                
+                pending_data_label.set_text('{}'.format(len(outgoing_data_buffer)))
+
+        except Exception as e:
+            error_label.set_text('Error in main loop: {}'.format(e))
+
+        # Add a delay to avoid flooding the server
+        time.sleep(7)
 
 main_loop()

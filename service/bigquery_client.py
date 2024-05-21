@@ -56,16 +56,23 @@ class BigQueryClient:
         except Exception as e:
             raise Exception(f"Failed to fetch weather data: {e}")
         
-    def fetch_average_weather_data(self, last_days: int):
+    def fetch_average_weather_data(self, last_days: int = 7):
         try:
             query = f"""
+            WITH last_seven_days AS (
+                SELECT DISTINCT date
+                FROM `{PROJECT_ID}.{DATASET_NAME}.{WEATHER_TABLE}`
+                WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL {last_days * 2} DAY)
+                ORDER BY date DESC
+                LIMIT {last_days}
+            )
             SELECT 
                 date,
                 AVG(indoor_humidity) as avg_humidity,
                 AVG(indoor_temp) as avg_temp,
                 AVG(indoor_air_quality) as avg_co2
             FROM `{PROJECT_ID}.{DATASET_NAME}.{WEATHER_TABLE}`
-            WHERE date >= DATE_SUB(CURRENT_DATE(), INTERVAL {last_days} DAY)
+            WHERE date IN (SELECT date FROM last_seven_days)
             GROUP BY date
             ORDER BY date DESC
             """
@@ -74,7 +81,7 @@ class BigQueryClient:
             query_job = self.client.query(query, job_config=job_config)
             results = query_job.result()
             
-            # convert date and time in results to string
+            # Convertir date et heure dans les résultats en chaîne
             formatted_results = []
             for row in results:
                 row_dict = {}
@@ -89,4 +96,5 @@ class BigQueryClient:
         
         except Exception as e:
             raise Exception(f"Failed to fetch weather data: {e}")
+
         
