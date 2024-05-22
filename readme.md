@@ -7,7 +7,6 @@ This project implements an indoor/outdoor weather monitoring system using an M5S
 - `m5stack`: Contains scripts for the M5Stack device interface.
   - `dashboard_ui.py`
   - `data_collector.py`
-  - `ui_with_page.py`
 - `online_dashboard`: Houses the Plotly Dash web application.
   - `Dockerfile`
   - `app.py`: Main application file
@@ -32,13 +31,36 @@ This project implements an indoor/outdoor weather monitoring system using an M5S
 The M5Stack IoT device serves as a compact yet powerful sensor hub designed to collect environmental data both indoors and outdoors. It features a versatile interface that allows for real-time monitoring and interaction.
 
 ### 🌡️ Functionalities:
-- **Environmental Sensing**: Measures indoor temperature and humidity through an environmental sensor.
-- **Motion Detection**: Utilizes a PIR motion sensor to detect presence and activity.
-- **Air Quality Monitoring**: Incorporates a TVOC gas detector to monitor indoor air quality.
-- **Time and Date**: Maintains accurate time via NTP synchronization, displaying current date and time.
-- **Weather Forecast**: Shows real-time outdoor weather conditions and forecasts using collected data and API integration.
-- **Connectivity**: Supports Wi-Fi connections for data transmission to cloud services and remote monitoring.
-- **Alerts and Notifications**: Provides alerts for significant changes in environmental conditions, such as air quality or humidity levels.
+- **Environmental Sensing**: Measures indoor temperature and humidity using an environmental sensor (ENV3).
+- **Air Quality Monitoring**: Monitors indoor air quality with a Total Volatile Organic Compounds (TVOC) gas detector, providing CO2 level readings.
+- **Time and Date Management**: Synchronizes with an NTP server to maintain accurate time and date display, adapting to the local timezone.
+- **Motion Detection**: Utilizes a Passive Infrared (PIR) motion sensor to detect presence and activity within the monitored area.
+- **Weather Forecasting**: Displays real-time outdoor weather conditions and forecasts by integrating with weather APIs.
+- **Historical Data Visualization**: Displays graphical representations of the last 7 days of historical data, including CO2 levels, indoor humidity, and temperature, fetched from BigQuery.
+- **Connectivity**: Supports automatic Wi-Fi connections for reliable data transmission to cloud services and remote monitoring capabilities.
+- **Alerts and Notifications**: Sends alerts for significant changes in environmental conditions, such as high humidity or poor air quality, and triggers visual alerts using light signals.
+- **Voice Announcements**: Generates and plays spoken weather updates based on current weather data.
+- **Data Transmission**: Sends real-time sensor data to a server for further processing and storage in BigQuery.
+- **Offline Data Buffering**: Stores sensor data locally when offline and sends it to the server once the connection is reestablished.
+
+## Display Information
+
+The M5Stack screen provides real-time visual feedback of various environmental parameters and system statuses. Below is a detailed breakdown of the information displayed:
+
+- **Date and Time**: The current date and time are displayed at the top of the screen.
+- **Wi-Fi Status**: Indicates the status of the Wi-Fi connection:
+  - `W+T`: Both Wi-Fi and time synchronization are successful.
+  - `W-T`: Only Wi-Fi is connected.
+  - `-W`: Wi-Fi is disconnected.
+- **Motion Status**: Shows `M` when motion is detected and `NM` when no motion is detected.
+- **Temperature**: Displays the current indoor temperature measured by the environmental sensor.
+- **Humidity**: Displays the current indoor humidity level.
+- **Air Quality**: Shows the CO2 concentration in parts per million (ppm) as measured by the TVOC gas detector.
+- **Weather Information**: Displays images for current and future weather forecasts, fetched from a weather API and updated periodically.
+- **Historical Data Visualization**: By pressing the B button (middle button on the M5Stack), an image displays graphical representations of the last 7 days of data, including CO2 levels, indoor humidity, and temperature. Press the B button again to return to the normal display.
+- **Error Messages and Status Updates**: Shows any errors or important status updates to inform the user of the system's current state.
+- **Pending Data Indicator**: Indicates the number of data points stored locally, which will be sent once the Wi-Fi connection is reestablished. This indicator is visible only when the Wi-Fi connection is lost.
+
 
 ### 🖼️ Dashboard Preview
 Below is a photo of the M5Stack device's dashboard, showcasing its capabilities in real-time data display.
