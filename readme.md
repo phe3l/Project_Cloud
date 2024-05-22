@@ -43,7 +43,7 @@ The M5Stack IoT device serves as a compact yet powerful sensor hub designed to c
 - **Data Transmission**: Sends real-time sensor data to a server for further processing and storage in BigQuery.
 - **Offline Data Buffering**: Stores sensor data locally when offline and sends it to the server once the connection is reestablished.
 
-## Display Information
+### ℹ️ Display Information:
 
 The M5Stack screen provides real-time visual feedback of various environmental parameters and system statuses. Below is a detailed breakdown of the information displayed:
 
@@ -54,8 +54,8 @@ The M5Stack screen provides real-time visual feedback of various environmental p
   - `-W`: Wi-Fi is disconnected.
 - **Motion Status**: Shows `M` when motion is detected and `NM` when no motion is detected.
 - **Temperature**: Displays the current indoor temperature measured by the environmental sensor.
-- **Humidity**: Displays the current indoor humidity level.
-- **Air Quality**: Shows the CO2 concentration in parts per million (ppm) as measured by the TVOC gas detector.
+- **Humidity**: Displays the current indoor humidity level. If the humidity is greater than 60% or less than 40%, the text is displayed in red, and an LED alert is triggered.
+- **Air Quality**: Shows the CO2 concentration in parts per million (ppm) as measured by the TVOC gas detector. If the CO2 level exceeds 1000 ppm, the text is displayed in red, and an LED alert is triggered.
 - **Weather Information**: Displays images for current and future weather forecasts, fetched from a weather API and updated periodically.
 - **Historical Data Visualization**: By pressing the B button (middle button on the M5Stack), an image displays graphical representations of the last 7 days of data, including CO2 levels, indoor humidity, and temperature. Press the B button again to return to the normal display.
 - **Error Messages and Status Updates**: Shows any errors or important status updates to inform the user of the system's current state.
