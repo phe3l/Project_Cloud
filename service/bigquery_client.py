@@ -81,7 +81,7 @@ class BigQueryClient:
             query_job = self.client.query(query, job_config=job_config)
             results = query_job.result()
             
-            # Convertir date et heure dans les résultats en chaîne
+            # convert date and time in results to string
             formatted_results = []
             for row in results:
                 row_dict = {}

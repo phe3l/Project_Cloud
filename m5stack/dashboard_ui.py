@@ -31,13 +31,11 @@ temperature_inside_label = M5Label('00.00°C', x=22, y=30, color=0xcd8100, font=
 humidity_inside_label = M5Label('Humidity: 00.00%', x=170, y=30, color=0xffffff, font=FONT_MONT_14)
 tvoc_label = M5Label('C02: 0ppm', x=170, y=50, color=0xffffff, font=FONT_MONT_14)
 
-#lcd.image(0, 79, '/flash/res/default_current_weather.png')
-#lcd.image(0, 150, '/flash/res/default_future_weather.png')
+# Images to display weather information & BigQuery history
 image1 = M5Img("/flash/res/default_current_weather.png", x=0, y=80)
 image2 = M5Img("/flash/res/default_future_weather.png", x=0, y=145)
 image3 = M5Img("/flash/res/fetch-bigquery-history-image.png", x=0, y=80)
 image3.set_hidden(True) 
-
 
 # Error label & pending data label
 pending_data_label = M5Label('', x=245, y=0, color=0xffffff, font=FONT_MONT_10)
@@ -86,7 +84,7 @@ def connect_wifi(wifi_credentials):
     """
     Connect to the WiFi using provided credentials.
     """
-    global wlan
+    global wlan, device_public_ip
     wlan.active(True)
     if wlan.isconnected():
         return True
@@ -101,6 +99,11 @@ def connect_wifi(wifi_credentials):
 
     if wlan.isconnected():
         error_label.set_text('Network config: {}'.format(wlan.ifconfig()))
+        
+        if get_device_public_ip():
+            error_label.set_text('Public IP obtained: {}'.format(device_public_ip))
+        else:
+            error_label.set_text('Failed to obtain public IP')
     else:
         error_label.set_text('Failed to connect to WiFi')
     return wlan.isconnected()
@@ -163,7 +166,7 @@ def update_datetime_label():
     try:
         local_time = time.localtime()
         days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        day_of_week = days_of_week[local_time[6]]  # local_time[6] is the weekday (0=Monday, 6=Sunday)
+        day_of_week = days_of_week[local_time[6]]
         
         formatted_date = '{} {:02d}.{:02d}.{:04d} - {:02d}:{:02d}'.format(
             day_of_week, local_time[2], local_time[1], local_time[0], local_time[3], local_time[4]
@@ -183,14 +186,13 @@ def get_current_weather(ip):
         url = "{}/generate-weather-image".format(flask_url)
         response = urequests.post(url, json={"ip": ip})
         if response.status_code == 200:
-            # Sauvegarder l'image dans un fichier temporaire
+            # save the image to a temporary file
             image_path = '/flash/res/current_weather.png'
             with open(image_path, 'wb') as f:
                 f.write(response.content)
 
-            # Afficher l'image sur l'écran M5Stack
+            # Display the image on the M5Stack screen
             image1.set_img_src(image_path)
-            #lcd.image(0, 79, image_path)  # Afficher l'image
             return True
         else:
             error_label.set_text('Error getting weather: {}'.format(response.status_code))
@@ -204,20 +206,19 @@ def get_current_weather(ip):
 
 def get_future_weather(ip):
     """
-    Fetch the image of the current weather information using the device's public IP address.
+    Fetch the image of the future weather information using the device's public IP address.
     """
     response = None
     try:
         url = "{}/generate-future-weather-image".format(flask_url)
         response = urequests.post(url, json={"ip": ip})
         if response.status_code == 200:
-            # Sauvegarder l'image dans un fichier temporaire
+            # Save the image to a temporary file
             image_path = '/flash/res/future_weather.png'
             with open(image_path, 'wb') as f:
                 f.write(response.content)
 
-            # Afficher l'image sur l'écran M5Stack
-            #lcd.image(0, 150, image_path)  # Afficher l'image
+            # Display the image on the M5Stack screen
             image2.set_img_src(image_path)
             return True
         else:
@@ -239,12 +240,12 @@ def fetch_bigquery_history_image():
         url = "{}/fetch-bigquery-history-image".format(flask_url)
         response = urequests.get(url)
         if response.status_code == 200:
-            # Sauvegarder l'image dans un fichier temporaire
+            # Save the image to a temporary file
             image_path = '/flash/res/fetch-bigquery-history-image.png'
             with open(image_path, 'wb') as f:
                 f.write(response.content)
 
-            # Afficher l'image sur l'écran M5Stack
+            # Display the image on the M5Stack screen
             image3.set_img_src(image_path)
             return True
         else:
@@ -292,7 +293,8 @@ def send_data(ip):
 
 def send_pending_data(ip, pending_data_buffer, reconnection_time):
     """
-    Send pending sensor data to the server.
+    Send pending sensor data to the server, assigning correct timestamps based on reconnection time.
+    Each data point in the buffer is sent sequentially with a fixed interval between timestamps.
     """
     interval_between_data = 120  # Interval between data additions in seconds
     num_data_points = len(pending_data_buffer)
@@ -328,12 +330,24 @@ def send_pending_data(ip, pending_data_buffer, reconnection_time):
             if response:
                 response.close()
 
-# Callback function to handle WiFi reconnection data sending
 def on_wifi_reconnected():
+    """
+    Callback function to handle WiFi reconnection data sending.
+    """
     global outgoing_data_buffer
-    if outgoing_data_buffer:
-        send_pending_data(device_public_ip, outgoing_data_buffer, time.time())
-        outgoing_data_buffer.clear()
+    if wlan.isconnected():
+        # Update public IP after reconnection
+        if get_device_public_ip():
+            error_label.set_text('Reconnected, public IP: {}'.format(device_public_ip))
+        else:
+            error_label.set_text('Reconnected, failed to get public IP')
+            
+        if outgoing_data_buffer:
+            send_pending_data(device_public_ip, outgoing_data_buffer, time.time())
+            outgoing_data_buffer.clear()
+            pending_data_label.set_text('')
+    else:
+        error_label.set_text('WiFi reconnected but not connected')
 
 def get_weather_spoken(ip):
     """
@@ -370,8 +384,10 @@ def play_weather_spoken():
     except Exception as e:
         error_label.set_text('Error in play_weather_spoken: {}'.format(e))
 
-# Function to update the sound playback based on the motion sensor state
 def update_sound():
+    """
+    Update the sound playback based on the motion sensor state.
+    """
     global last_motion_state, last_sound_played_timestamp, sound_playback_interval, device_public_ip
     current_motion_state = "M" if motion_sensor.state == 1 else "NM"
     motion_status_label.set_text('{}'.format(current_motion_state))
@@ -384,7 +400,11 @@ def update_sound():
             last_sound_played_timestamp = current_time
     last_motion_state = current_motion_state
 
+
 def check_and_alert(env3_hum, gas_value):
+    """
+    Check the environmental sensor values and trigger an alert if necessary.
+    """
     alert_triggered = False
 
     # Check humidity
@@ -416,13 +436,15 @@ def blink_red_led(duration, interval):
     """
     end_time = time.time() + duration
     while time.time() < end_time:
-        rgb.setColorAll(0xFF0000)  # Turn LED red
+        rgb.setColorAll(0xFF0000)  
         time.sleep(interval)
-        rgb.setColorAll(0x000000)  # Turn LED off
+        rgb.setColorAll(0x000000)
         time.sleep(interval)
 
-# Function to update the sensor display values
 def update_sensor_display():
+    """
+    Update the sensor display values on the M5Stack screen.
+    """
     env3_temp = environmental_sensor.temperature 
     temperature_inside_label.set_text('{:.2f}°C'.format(env3_temp))
 
@@ -435,10 +457,13 @@ def update_sensor_display():
     check_and_alert(env3_hum, gas_value)
 
 def toggle_images():
+    """
+    Toggle between the weather images displayed on the M5Stack screen.
+    """
     global images_visible
     if images_visible:
-        image1.set_hidden(True)  # Cacher la première image
-        image2.set_hidden(True)  # Cacher la deuxième image
+        image1.set_hidden(True)  
+        image2.set_hidden(True)
         image3.set_hidden(False)
         images_visible = False
     else:
@@ -450,6 +475,7 @@ def toggle_images():
 # Initialize WiFi and time synchronization
 initialize_wifi_and_time(wifi_credentials)
 
+# Bind the button to the image toggle function
 btnB.wasPressed(toggle_images)
 
 # Main loop of the device
@@ -500,7 +526,7 @@ def main_loop():
                 initialize_wifi_and_time(wifi_credentials)
 
                 # Append sensor data to buffer if not sent after 120 seconds         
-                if now - data_last_sent > 120:
+                if time.time() - data_last_sent >= 120:
                     outgoing_data_buffer.append((environmental_sensor.temperature, environmental_sensor.humidity, gas_detector.eCO2))
                     data_last_sent = now
                 

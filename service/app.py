@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify, send_file
 import logging, os
-
 from bigquery_client import BigQueryClient
 from weather_client import WeatherClient
 from vertexai_client import VertexAIClient
@@ -8,10 +7,8 @@ from texttospeech_client import TextToSpeechClient
 from PIL import Image, ImageDraw, ImageFont
 import requests
 from datetime import datetime
-
-
 import matplotlib
-matplotlib.use('Agg')  # Utiliser l'arrière-plan non interactif
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 import matplotlib.dates as mdates
@@ -19,7 +16,7 @@ from io import BytesIO
 
 
 
-FONT_PATH = '/Users/phil/Desktop/IS M.02/Cloud and Advanced Analytics/Projet/Project_Cloud/res/Mont-Regular.ttf'  # Update this path to where your FONT_MONT.ttf is located
+FONT_PATH = '/Users/phil/Desktop/IS M.02/Cloud and Advanced Analytics/Projet/Project_Cloud/res/Mont-Regular.ttf'
 
 
 app = Flask(__name__)
@@ -34,10 +31,12 @@ TMP_DIR = '/tmp'
 
 @app.route('/')
 def home():
+    """Home endpoint to check if the service is up."""
     return "The service is up and running!"
 
 @app.route('/send-to-bigquery', methods=['POST'])
 def insert_weather():
+    """Endpoint to insert weather & sensors data into BigQuery."""
     try:
         data = request.get_json(force=True)["values"]
         
@@ -61,6 +60,7 @@ def insert_weather():
 
 @app.route('/send-pending-to-bigquery', methods=['POST'])
 def insert_pending_weather():
+    """Endpoint to insert pending sensors data into BigQuery."""
     try:
         data = request.get_json(force=True)["values"]
         response = bq_client.insert_into_bigquery(data)
@@ -122,18 +122,17 @@ def generate_weather_image():
         draw = ImageDraw.Draw(image)
         
         # Load custom font
-        font_path = FONT_PATH  # Path to the FONT_MONT.ttf file
+        font_path = FONT_PATH
 
         draw.text((24, 24), f"{temperature}°C", font=ImageFont.truetype(font_path, 25), fill=(46,143,219))
         draw.text((139, 18), f"{humidity}%", font=ImageFont.truetype(font_path, 20), fill=(245,245,245))
         draw.text((133, 41), f"Humidity", font=ImageFont.truetype(font_path, 11), fill=((141,140,145)))
 
-        # Calculate position to paste the icon (on the right side)
         icon_width, icon_height = icon_image.size
         icon_x = 320 - icon_width - 5
         icon_y = (65 - icon_height) // 2
 
-        # Paste the weather icon on the right side of the image
+        # Paste the weather icon
         image.paste(icon_image, (icon_x, icon_y), icon_image)
 
         # Save the image
@@ -185,9 +184,9 @@ def generate_future_weather_image():
         future_weather = weather_client.fetch_weather_data(lat, lon, current_weather=False)
 
         # Extract forecast for 24, 48, and 72 hours
-        forecast_24h = future_weather['list'][8]  # Assuming data every 3 hours, 24h = 8 * 3h
-        forecast_48h = future_weather['list'][16] # 48h = 16 * 3h
-        forecast_72h = future_weather['list'][24] # 72h = 24 * 3h
+        forecast_24h = future_weather['list'][8] 
+        forecast_48h = future_weather['list'][16]
+        forecast_72h = future_weather['list'][24]
 
         forecasts = [forecast_24h, forecast_48h, forecast_72h]
 
@@ -196,7 +195,7 @@ def generate_future_weather_image():
         draw = ImageDraw.Draw(image)
         
         # Load custom font
-        font_path = FONT_PATH  # Path to the FONT_MONT.ttf file
+        font_path = FONT_PATH
 
         # Starting position for text and icons
         x_positions = [30, 135, 240]
@@ -220,14 +219,12 @@ def generate_future_weather_image():
             icon_image = Image.open(icon_response.raw).convert("RGBA")
             icon_image = icon_image.resize((50, 50), Image.LANCZOS)
 
-            # Calculate the position for the icon
             icon_x = x_positions[i]
             icon_y = y_icon
 
             # Paste the weather icon on the image
             image.paste(icon_image, (icon_x, icon_y), icon_image)
             
-            # Draw the text
             draw.text((icon_x, y_date), formatted_date, font=ImageFont.truetype(font_path, 15), fill=(255,161,3))
             draw.text((icon_x, y_temp_humidity), f"{round(temperature)}°C | {humidity}%", font=ImageFont.truetype(font_path, 13), fill=(215,214,219))
 
@@ -314,26 +311,31 @@ def fetch_bigquery_history():
 
 @app.route('/fetch-bigquery-history-image', methods=['GET'])
 def fetch_bigquery_history_image():
-    """Endpoint to fetch weather data history from BigQuery and generate a graph."""
+    """
+    Endpoint to retrieve historical weather data from BigQuery and generate a graphical representation.
+    This endpoint fetches the weather data history stored in BigQuery for the last 7 days, 
+    processes the data to calculate daily averages of temperature, humidity, and CO2 levels, 
+    and then generates a visually appealing graph displaying these averages.
+    """
     
     try:
         # Fetch data from BigQuery
-        data = bq_client.fetch_average_weather_data(last_days=8)
+        data = bq_client.fetch_average_weather_data(last_days=7)
         
-        # Convertir les données en DataFrame
+        # Convert the data into a DataFrame
         df = pd.DataFrame(data)
 
-        # Assurez-vous que les colonnes sont du bon type de données
-        df['date'] = pd.to_datetime(df['date'])  # Convertir la colonne date en datetime
-        df['avg_temp'] = pd.to_numeric(df['avg_temp'])  # Convertir la colonne avg_temp en numérique
-        df['avg_humidity'] = pd.to_numeric(df['avg_humidity'])  # Convertir la colonne avg_humidity en numérique
-        df['avg_co2'] = pd.to_numeric(df['avg_co2'])  # Convertir la colonne avg_co2 en numérique
+        # Ensure the columns are of the correct data type
+        df['date'] = pd.to_datetime(df['date'])  
+        df['avg_temp'] = pd.to_numeric(df['avg_temp'])
+        df['avg_humidity'] = pd.to_numeric(df['avg_humidity'])
+        df['avg_co2'] = pd.to_numeric(df['avg_co2'])
 
-        # Configurer la taille du graphe
-        fig, axs = plt.subplots(3, 1, figsize=(3.2, 1.65), sharex=True)  # Réduire la taille de l'image
+        # Configure the size of the graph
+        fig, axs = plt.subplots(3, 1, figsize=(3.2, 1.65), sharex=True)
         fig.patch.set_facecolor('black')
         
-        # Configuration des axes
+        # Configure the axes
         for ax in axs:
             ax.set_facecolor('black')
             ax.tick_params(axis='x', colors='white')
@@ -341,51 +343,62 @@ def fetch_bigquery_history_image():
             for spine in ax.spines.values():
                 spine.set_visible(False)
         
-        # Garder visible uniquement l'axe x en bas
+        # Keep only the x-axis at the bottom visible
         axs[0].xaxis.set_visible(False)
         axs[1].xaxis.set_visible(False)
+
         
-        # Tracer la température intérieure
-        axs[0].plot(df['date'], df['avg_temp'], label='Température intérieure (°C)', marker='o', markersize=4, linewidth=1, color='#e058a7')  # Augmenter la taille des marqueurs et la largeur des lignes
-        axs[0].set_ylabel('°C', fontsize=8, color='white')  # Augmenter la taille du texte
+        # Plot the indoor temperature
+        axs[0].plot(df['date'], df['avg_temp'], label='Indoor Temperature (°C)', marker='o', markersize=4, linewidth=1, color='#e058a7') 
+        axs[0].set_ylabel('°C', fontsize=8, color='white')  
         axs[0].yaxis.set_ticks([])
-        axs[0].yaxis.set_label_coords(-0.05, 0.5)  # Ajuster la position des étiquettes de l'axe y
-        axs[0].yaxis.label.set_rotation(0)  # Rendre les étiquettes de l'axe y horizontales
+        axs[0].yaxis.set_label_coords(-0.05, 0.5)
+        axs[0].yaxis.label.set_rotation(0)
 
-        # Afficher les valeurs pour chaque point (déplacer les valeurs un peu plus haut et arrondir les valeurs)
+        # Show values for each point
         for i in range(len(df['date'])):
-            axs[0].annotate(f"{int(df['avg_temp'].iloc[i])}", (df['date'].iloc[i], df['avg_temp'].iloc[i] + 0.5), fontsize=8, color='white')  # Augmenter la taille du texte
+            axs[0].annotate(f"{int(df['avg_temp'].iloc[i])}", 
+                            (df['date'].iloc[i], df['avg_temp'].iloc[i] + 0.2), 
+                            fontsize=8, color='white',
+                            ha='center', va='bottom')
 
-        # Tracer l'humidité intérieure
-        axs[1].plot(df['date'], df['avg_humidity'], label='Humidité intérieure (%)', marker='o', markersize=4, linewidth=1, color='#007afe')  # Augmenter la taille des marqueurs et la largeur des lignes
-        axs[1].set_ylabel('H.%', fontsize=8, color='white')  # Augmenter la taille du texte
+        # Plot the indoor humidity
+        axs[1].plot(df['date'], df['avg_humidity'], label='Indoor Humidity (%)', marker='o', markersize=4, linewidth=1, color='#007afe')
+        axs[1].set_ylabel('H.%', fontsize=8, color='white')  
         axs[1].yaxis.set_ticks([])
-        axs[1].yaxis.set_label_coords(-0.03, 0.5)  # Ajuster la position des étiquettes de l'axe y
-        axs[1].yaxis.label.set_rotation(0)  # Rendre les étiquettes de l'axe y horizontales
+        axs[1].yaxis.set_label_coords(-0.03, 0.5)
+        axs[1].yaxis.label.set_rotation(0)
 
-        # Afficher les valeurs pour chaque point (déplacer les valeurs un peu plus haut et arrondir les valeurs)
+        # Show values for each point 
         for i in range(len(df['date'])):
-            axs[1].annotate(f"{int(df['avg_humidity'].iloc[i])}", (df['date'].iloc[i], df['avg_humidity'].iloc[i] - 6.5), fontsize=8, color='white')  # Augmenter la taille du texte
+            axs[1].annotate(f"{int(df['avg_humidity'].iloc[i])}", 
+                            (df['date'].iloc[i], df['avg_humidity'].iloc[i] + 0.6), 
+                            fontsize=8, color='white',
+                            ha='center', va='bottom')
 
-        # Tracer la qualité de l'air intérieur
-        axs[2].plot(df['date'], df['avg_co2'], label='Qualité de l\'air intérieur (CO2)', marker='o', markersize=4, linewidth=1, color='#4cda63')  # Augmenter la taille des marqueurs et la largeur des lignes
-        axs[2].set_ylabel('CO2', fontsize=8, color='white')  # Augmenter la taille du texte
+        # Plot the indoor air quality
+        axs[2].plot(df['date'], df['avg_co2'], label='Indoor Air Quality (CO2)', marker='o', markersize=4, linewidth=1, color='#4cda63')
+        axs[2].set_ylabel('CO2', fontsize=8, color='white') 
         axs[2].yaxis.set_ticks([])
-        axs[2].yaxis.set_label_coords(-0.03, 0.5)  # Ajuster la position des étiquettes de l'axe y
-        axs[2].yaxis.label.set_rotation(0)  # Rendre les étiquettes de l'axe y horizontales
+        axs[2].yaxis.set_label_coords(-0.03, 0.5) 
+        axs[2].yaxis.label.set_rotation(0)
 
-        # Afficher les valeurs pour chaque point (déplacer les valeurs un peu plus haut et arrondir les valeurs)
+        # Show values for each point
         for i in range(len(df['date'])):
-            axs[2].annotate(f"{int(df['avg_co2'].iloc[i])}", (df['date'].iloc[i], df['avg_co2'].iloc[i] + 10), fontsize=8, color='white')  # Augmenter la taille du texte
+            axs[2].annotate(f"{int(df['avg_co2'].iloc[i])}", 
+                            (df['date'].iloc[i], df['avg_co2'].iloc[i] + 20), 
+                            fontsize=8, color='white',
+                            ha='center', va='bottom')
+            
+        # Configure the labels of the x-axis
+        axs[2].xaxis.set_major_formatter(mdates.DateFormatter('%d'))
+        axs[2].set_xticks(df['date'])
+        axs[2].tick_params(axis='x', rotation=0, labelsize=8, colors='white')  
 
-        # Configurer les labels de l'axe x
-        axs[2].xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
-        axs[2].tick_params(axis='x', rotation=0, labelsize=8, colors='white')  # Augmenter la taille du texte
-
-        # Ajuster l'espacement entre les sous-graphiques
+        # Adjust spacing between subplots
         plt.subplots_adjust(left=0.08, right=0.98, top=0.89, bottom=0.15, hspace=0.45)
 
-        # Sauvegarder le graphe dans un fichier en mémoire
+        # Save the graph in a memory file
         img_io = BytesIO()
         plt.savefig(img_io, format='png', dpi=100, facecolor='black')
         img_io.seek(0)
