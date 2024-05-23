@@ -35,7 +35,7 @@ The M5Stack IoT device serves as a compact yet powerful sensor hub designed to c
 - **Time and Date Management**: Synchronizes with an NTP server to maintain accurate time and date display, adapting to the local timezone.
 - **Motion Detection**: Utilizes a Passive Infrared (PIR) motion sensor to detect presence and activity within the monitored area.
 - **Weather Forecasting**: Displays real-time outdoor weather conditions and forecasts by integrating with weather APIs.
-- **Historical Data Visualization**: Displays graphical representations of the last 7 days of historical data, including CO2 levels, indoor humidity, and temperature, fetched from BigQuery.
+- **Historical Data Visualization**: Displays graphical representations of the average CO2 levels, indoor humidity, and indoor temperature over the past 7 days, fetched from BigQuery.
 - **Connectivity**: Supports automatic Wi-Fi connections for reliable data transmission to cloud services and remote monitoring capabilities.
 - **Alerts and Notifications**: Sends alerts for significant changes in environmental conditions, such as high humidity or poor air quality, and triggers visual alerts using light signals.
 - **Voice Announcements**: Generates and plays spoken weather updates based on current weather data.
@@ -56,7 +56,7 @@ The M5Stack screen provides real-time visual feedback of various environmental p
 - **Humidity**: Displays the current indoor humidity level. If the humidity is greater than 60% or less than 40%, the text is displayed in red, and an LED alert is triggered.
 - **Air Quality**: Shows the CO2 concentration in parts per million (ppm) as measured by the TVOC gas detector. If the CO2 level exceeds 1000 ppm, the text is displayed in red, and an LED alert is triggered.
 - **Weather Information**: Displays images for current and future weather forecasts, fetched from a weather API and updated periodically.
-- **Historical Data Visualization**: By pressing the B button (middle button on the M5Stack), an image displays graphical representations of the last 7 days of data, including CO2 levels, indoor humidity, and temperature. Press the B button again to return to the normal display.
+- **Historical Data Visualization**: By pressing the B button (the middle button on the M5Stack), an image displays graphical representations of the average levels of CO2, indoor humidity, and indoor temperature over the past 7 days. Press the B button again to return to the normal display.
 - **Error Messages and Status Updates**: Shows any errors or important status updates to inform the user of the system's current state.
 - **Pending Data Indicator**: Indicates the number of data points stored locally, which will be sent once the Wi-Fi connection is reestablished. This indicator is visible only when the Wi-Fi connection is lost.
 
