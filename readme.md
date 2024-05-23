@@ -67,12 +67,22 @@ Below is a photo of the M5Stack device's dashboard, showcasing its capabilities 
 
 <img src="res/readme_resources/m5stack_preview.jpeg" alt="M5Stack Device Dashboard" style="width:50%;">
 
-### 🛠 M5Stack Deployment
-To deploy the M5Stack device interface:
 
-1. Ensure you have Python 3.x installed on the M5Stack device.
-2. Clone the project repository to the device.
+### M5Stack Requirements
+
+1. Required Hardware: M5Stack Core2, ENV3 Environmental Sensor, PIR Motion Sensor, TVOC Gas Detector.
+2. Ensure you have Python 3.x installed on the M5Stack device.
+
+### M5Stack Setup
+
+1. Clone the project repository to the device (only the `dashboard_ui.py` file is needed).
+2. Load the required images into the `res` folder on the M5Stack device. The images can be found in the `res` folder of the project repository:
+   - `default_current_weather.png`
+   - `default_future_weather.png`
+   - `fetch-bigquery-history-image.png`
+3. Configure the Wi-Fi credentials in the `dashboard_ui.py` script.
 4. Run the `dashboard_ui.py` script to start the device interface.
+
 
 ## ⚙️ Backend Service
 
