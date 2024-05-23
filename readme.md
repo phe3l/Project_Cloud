@@ -6,7 +6,6 @@ This project implements an indoor/outdoor weather monitoring system using an M5S
 ## 📁 Project Structure
 - `m5stack`: Contains scripts for the M5Stack device interface.
   - `dashboard_ui.py`
-  - `data_collector.py`
 - `online_dashboard`: Houses the Plotly Dash web application.
   - `Dockerfile`
   - `app.py`: Main application file
