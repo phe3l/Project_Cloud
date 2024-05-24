@@ -23,14 +23,6 @@ weather_client = WeatherClient()
 vertex_ai_client = VertexAIClient()
 text_to_speech_client = TextToSpeechClient()
 
-
-
-from vertexai_client_alert import VertexAIClientAltert
-vertex_ai_clientAlert = VertexAIClientAltert()
-
-
-
-
 logging.basicConfig(level=logging.INFO)
 TMP_DIR = '/tmp'
 
@@ -259,8 +251,14 @@ def generate_current_weather_spoken():
         # Fetch current weather using the latitude and longitude
         current_weather = weather_client.fetch_weather_data(lat, lon, current_weather=True)
         
+        SYSTEM_INSTRUCTION = """This transformer takes weather conditions (might include temperature, weather condition, humidity, wind speed and others) as inputs. 
+                    It processes these inputs to generate a PLAYFUL and engaging text description of the weather.
+                    It makes it lyrical and engaging, with a touch of humor.
+                    The generated text is crafted to be phonetically clear and simple, making it ideal for text-to-speech applications. 
+                    No longer then 50 words. No emojis, special characters, or HTML tags."""
+        
         # Generate a spoken description of the current weather
-        description = vertex_ai_client.get_weather_description(str(current_weather))
+        description = vertex_ai_client.get_weather_description(str(current_weather), system_instruction=SYSTEM_INSTRUCTION)
         voice_data = text_to_speech_client.generate_speech(description)
         
         #temp_file = os.path.join(TMP_DIR, 'output.mp3')
@@ -335,7 +333,9 @@ def generate_future_weather_spoken():
             "rain": rain,
         }
         
-        description = vertex_ai_clientAlert.get_weather_description(str(description_data))
+        SYSTEM_INSTRUCTION = """This transformer takes future weather conditions in 6 hours (including temperature, weather condition, humidity, wind speed, and others) as inputs. It processes these inputs to generate a text description of the future weather and advice for appropriate clothing and activities based on the forecasted conditions and time. Be inventive with the recommendations for clothing and activities. The advice is given in a serious tone. The generated text is crafted to be phonetically clear and simple, making it ideal for text-to-speech applications. No longer than 100 words. No emojis, special characters, or HTML tags."""
+
+        description = vertex_ai_client.get_weather_description(str(description_data), system_instruction=SYSTEM_INSTRUCTION)
         voice_data = text_to_speech_client.generate_speech(description)
         
         temp_file = os.path.join(TMP_DIR, 'advice_output.wav')
