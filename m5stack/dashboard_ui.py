@@ -8,7 +8,7 @@ from machine import RTC
 import gc
 import socket
 import struct
-from m5stack import lcd, rgb, speaker, btnB
+from m5stack import lcd, rgb, speaker, btnB, btnC
 import os
 
 # Initialize the M5Stack screen
@@ -44,7 +44,7 @@ error_label = M5Label('', x=10, y=16, color=0xffffff, font=FONT_MONT_10)
 # WiFi credentials for network connection
 #wifi_credentials = ('iot-unil', '4u6uch4hpY9pJ2f9')
 wifi_credentials = ('TP-Link_IoT_76C4', '49032826')
-flask_url = "http://192.168.0.102:8080"
+flask_url = "http://192.168.0.100:8080"
 
 # Initialize WLAN
 wlan = WLAN(STA_IF)
@@ -472,11 +472,48 @@ def toggle_images():
         image3.set_hidden(True)
         images_visible = True
 
+def generate_and_alert_weather(ip):
+    """
+    Generate and play the spoken weather description for the future weather. Including advice such as "Take an umbrella".
+    """
+    url = "{}/generate-future-weather-spoken".format(flask_url)
+    response = None
+    try:
+        # Step 1: Generate the spoken weather description
+        response = urequests.post(url, json={"ip": ip})
+        if response.status_code == 200:
+            with open('/flash/alert_weather.mp3', 'wb') as f:
+                f.write(response.content)
+        else:
+            error_label.set_text('Error generating spoken weather: {}'.format(response.status_code))
+            return False
+
+        # Step 2: Play the spoken weather description
+        if 'alert_weather.mp3' in os.listdir('/flash'):
+            speaker.playWAV("/flash/alert_weather.mp3", volume=6)
+        else:
+            error_label.set_text('alert_weather.mp3 not found')
+            return False
+
+        return True
+
+    except Exception as e:
+        error_label.set_text('Error in generate_and_play_weather_spoken: {}'.format(e))
+        return False
+
+    finally:
+        if response:
+            response.close()
+
+
 # Initialize WiFi and time synchronization
 initialize_wifi_and_time(wifi_credentials)
 
 # Bind the button to the image toggle function
 btnB.wasPressed(toggle_images)
+
+# Bind the button to the weather alert function
+btnC.wasPressed(lambda: generate_and_alert_weather(device_public_ip))
 
 # Main loop of the device
 def main_loop():
@@ -536,6 +573,6 @@ def main_loop():
             error_label.set_text('Error in main loop: {}'.format(e))
 
         # Add a delay to avoid flooding the server
-        time.sleep(7)
+        time.sleep(5)
 
 main_loop()

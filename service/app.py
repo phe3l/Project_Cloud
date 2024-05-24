@@ -6,7 +6,7 @@ from vertexai_client import VertexAIClient
 from texttospeech_client import TextToSpeechClient
 from PIL import Image, ImageDraw, ImageFont
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -14,10 +14,7 @@ import pandas as pd
 import matplotlib.dates as mdates
 from io import BytesIO
 
-
-
-FONT_PATH = '/Users/phil/Desktop/IS M.02/Cloud and Advanced Analytics/Projet/Project_Cloud/res/Mont-Regular.ttf'
-
+FONT_PATH = 'Project_Cloud/res/Mont-Regular.ttf'
 
 app = Flask(__name__)
 
@@ -25,6 +22,14 @@ bq_client = BigQueryClient()
 weather_client = WeatherClient()
 vertex_ai_client = VertexAIClient()
 text_to_speech_client = TextToSpeechClient()
+
+
+
+from vertexai_client_alert import VertexAIClientAltert
+vertex_ai_clientAlert = VertexAIClientAltert()
+
+
+
 
 logging.basicConfig(level=logging.INFO)
 TMP_DIR = '/tmp'
@@ -296,6 +301,54 @@ def generate_weather_spoken_from_text():
         logging.error(f"Error generating spoken weather description: {e}")
         return jsonify({"error": str(e)}), 500
     
+
+@app.route('/generate-future-weather-spoken', methods=['POST'])
+def generate_future_weather_spoken():
+    """Endpoint to generate a spoken description of the future weather (in 6 hours) with dressing advice."""
+    
+    data = request.get_json()
+    if 'ip' not in data:
+        return jsonify({"error": "IP address is required"}), 400
+
+    try:
+        # Fetch location data using the IP address
+        location_data = weather_client.fetch_location_data(data['ip'])
+        lat, lon = location_data['loc'].split(',')
+        
+        # Fetch future weather using the latitude and longitude
+        future_weather = weather_client.fetch_weather_data(lat, lon, current_weather=False)
+        
+        # Extract weather data for the next 6 hours (first forecast in the list)
+        closest_forecast = future_weather['list'][1]
+
+        # Get weather conditions
+        weather_conditions = closest_forecast['weather'][0]['description']
+        temp = closest_forecast['main']['temp']
+        rain = closest_forecast.get('rain', {}).get('6h', 0)
+
+        # Generate a spoken description using the text_to_speech service
+        description_data = {
+            "temperature": temp,
+            "forecast_hour": (datetime.now() + timedelta(hours=6)).hour,
+            "current_hour": datetime.now(),
+            "weather_conditions": weather_conditions,
+            "rain": rain,
+        }
+        
+        description = vertex_ai_clientAlert.get_weather_description(str(description_data))
+        voice_data = text_to_speech_client.generate_speech(description)
+        
+        temp_file = os.path.join(TMP_DIR, 'advice_output.wav')
+        with open(temp_file, 'wb') as audio_file:
+            audio_file.write(voice_data)
+        
+        return send_file(temp_file, mimetype='audio/wav')
+
+    except Exception as e:
+        logging.error(f"Error generating spoken weather description: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/fetch-bigquery-history', methods=['POST'])
 def fetch_bigquery_history():
     """Endpoint to fetch weather data history from BigQuery."""
@@ -307,7 +360,6 @@ def fetch_bigquery_history():
     except Exception as e:
         logging.error(f"Error fetching weather data history: {e}")
         return jsonify({"error": str(e)}), 500
-    
 
 @app.route('/fetch-bigquery-history-image', methods=['GET'])
 def fetch_bigquery_history_image():
