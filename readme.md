@@ -38,7 +38,7 @@ The M5Stack IoT device serves as a compact yet powerful sensor hub designed to c
 - **Historical Data Visualization**: Displays graphical representations of the average CO2 levels, indoor humidity, and indoor temperature over the past 7 days, fetched from BigQuery.
 - **Connectivity**: Supports automatic Wi-Fi connections for reliable data transmission to cloud services and remote monitoring capabilities.
 - **Alerts and Notifications**: Sends alerts for significant changes in environmental conditions, such as high humidity or poor air quality, and triggers visual alerts using light signals.
-- **Voice Announcements**: Generates and plays spoken weather updates based on current weather data.
+- **Voice Announcements**: When the motion sensor detects presence, it will announce the current weather in a cheerful tone. By pressing button C, it will announce the weather for the next 6 hours in a serious tone, recommending appropriate clothing and activities based on the forecasted conditions and time.
 - **Data Transmission**: Sends real-time sensor data to a server for further processing and storage in BigQuery.
 - **Offline Data Buffering**: Stores sensor data locally when offline and sends it to the server once the connection is reestablished.
 
@@ -59,7 +59,6 @@ The M5Stack screen provides real-time visual feedback of various environmental p
 - **Historical Data Visualization**: By pressing the B button (the middle button on the M5Stack), an image displays graphical representations of the average levels of CO2, indoor humidity, and indoor temperature over the past 7 days. Press the B button again to return to the normal display.
 - **Error Messages and Status Updates**: Shows any errors or important status updates to inform the user of the system's current state.
 - **Pending Data Indicator**: Indicates the number of data points stored locally, which will be sent once the Wi-Fi connection is reestablished. This indicator is visible only when the Wi-Fi connection is lost.
-
 
 ### 🖼️ Dashboard Preview
 Below is a photo of the M5Stack device's dashboard, showcasing its capabilities in real-time data display.
