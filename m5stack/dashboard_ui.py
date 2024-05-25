@@ -517,26 +517,32 @@ btnC.wasPressed(lambda: generate_and_alert_weather(device_public_ip))
 
 # Main loop of the device
 def main_loop():
-    global device_public_ip, outgoing_data_buffer 
-    
+    global device_public_ip, outgoing_data_buffer
+
     # Initial forced updates
     time_last_update = time.time() - 60  # Force immediate time update at start
     data_last_sent = time.time() - 120  # Force data send 3 minutes after start
-    weather_last_checked = time.time() - 120  # Force immediate weather check at start
-    future_last_checked = time.time() - 3600  # Force immediate weather check at start
-    data_last_history = time.time() - 3600  # Force immediate history check at start
+    data_buffer_last_sent = time.time() 
+    weather_last_checked = time.time() - 116  # Force immediate weather check at start
+    future_last_checked = time.time() - 3592  # Force immediate weather check at start
+    data_last_history = time.time() - 3585  # Force immediate history check at start
 
     while True:
         try:
             update_sensor_display()
             if wlan.isconnected():
-                if outgoing_data_buffer:
+
+                if len(outgoing_data_buffer) > 0:
                     on_wifi_reconnected()
             
-                update_datetime_label()
                 update_sound()
 
                 now = time.time()
+
+                # Update the time label every minute
+                if now - time_last_update >= 60:
+                    update_datetime_label()
+                    time_last_update = time.time()
 
                 # Check if it's time to fetch the current weather image
                 if now - weather_last_checked >= 120:
@@ -561,13 +567,16 @@ def main_loop():
             else:
                 # Reconnect to WiFi if disconnected
                 initialize_wifi_and_time(wifi_credentials)
+                temp = environmental_sensor.temperature
+                hum = environmental_sensor.humidity
+                eco2 = gas_detector.eCO2
+                now = time.time()
 
                 # Append sensor data to buffer if not sent after 120 seconds         
-                if time.time() - data_last_sent >= 120:
-                    outgoing_data_buffer.append((environmental_sensor.temperature, environmental_sensor.humidity, gas_detector.eCO2))
-                    data_last_sent = now
+                if now - data_buffer_last_sent >= 120:
+                    outgoing_data_buffer.append((temp, hum, eco2))
+                    data_buffer_last_sent = now
                 
-                pending_data_label.set_text('{}'.format(len(outgoing_data_buffer)))
 
         except Exception as e:
             error_label.set_text('Error in main loop: {}'.format(e))
