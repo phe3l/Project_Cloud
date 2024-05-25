@@ -78,8 +78,8 @@ def _update_averages_plots(n_intervals, df, plots_legend):
         line_shape="spline",
         template="plotly_dark",
         color_discrete_map={
-            "Indoor Humidity": "green",  # Color for Indoor Humidity line
-            "Outdoor Humidity": "orange"  # Color for Outdoor Humidity line
+            "Indoor Humidity": "orange",  # Color for Indoor Humidity line
+            "Outdoor Humidity": "green"  # Color for Outdoor Humidity line
         }
     )
     
@@ -96,11 +96,11 @@ def _update_averages_plots(n_intervals, df, plots_legend):
     )
 
     temperature_fig.update_layout(legend=plots_legend, plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)', title_x=0.5)
-    temperature_fig.update_traces(fill='tozeroy')
+    temperature_fig.update_traces(fill='tozeroy', mode='lines+markers')
     humidity_fig.update_layout(legend=plots_legend, plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)', title_x=0.5)
-    humidity_fig.update_traces(fill='tozeroy')
+    humidity_fig.update_traces(fill='tozeroy', mode='lines+markers')
     air_quality_fig.update_layout(legend=plots_legend, plot_bgcolor='rgba(0, 0, 0, 0)', paper_bgcolor='rgba(0, 0, 0, 0)', title_x=0.5, yaxis_title="eCO2 concentration (ppm)")
-    air_quality_fig.update_traces(fill='tozeroy', line=dict(color='white'))
+    air_quality_fig.update_traces(fill='tozeroy', line=dict(color='white'), mode='lines+markers')
     
     return air_quality_fig, temperature_fig, humidity_fig
 
@@ -108,8 +108,12 @@ def _update_averages_plots(n_intervals, df, plots_legend):
 
 def _update__daily_graph(df, selected_graph, selected_date, plots_legend):
     
-    selected_date = datetime.strptime(selected_date, "%d/%m/%Y")
-    dff = df[df["datetime"].dt.date == selected_date.date()]
+    if selected_date != "Entire History":
+        selected_date = datetime.strptime(selected_date, "%d/%m/%Y")
+        dff = df[df["datetime"].dt.date == selected_date.date()]
+    else:
+        dff = df
+        
     dff = utils.prepare_daily_data(dff)
     weather_history_additional_info = ""
     
@@ -139,8 +143,8 @@ def _update__daily_graph(df, selected_graph, selected_date, plots_legend):
             line_shape="spline",
             template="plotly_dark",
             color_discrete_map={
-                "Indoor Humidity": "green",  # Color for Indoor Humidity line
-                "Outdoor Humidity": "orange"  # Color for Outdoor Humidity line
+                "Indoor Humidity": "orange",  # Color for Indoor Humidity line
+                "Outdoor Humidity": "green"  # Color for Outdoor Humidity line
             }
         )
         correlation = dff["Indoor Humidity"].corr(dff["Outdoor Humidity"])

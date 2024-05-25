@@ -2,6 +2,7 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 from dash_iconify import DashIconify
 import dash_daq as daq
+import numpy as np
 
 
 plots_legend=dict(
@@ -186,8 +187,8 @@ def history_explore_row(dates_list):
                 ),
                 dcc.Dropdown(
                     id="date-selector",
-                    options=dates_list,
-                    value=dates_list[0],
+                    options=np.insert(dates_list, 0, "Entire History"),
+                    value="Entire History",
                     clearable=False,
                     style={"margin-bottom": "40px"}
                 ),
