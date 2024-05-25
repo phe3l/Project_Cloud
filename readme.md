@@ -173,8 +173,8 @@ To deploy the dashboard on Google Cloud Run:
 
 ### Mykhailo Zotov (wildchilling)
 **Contributions**:
-- Developed and deployed the web dashboard using Plotly Dash to Google Cloud Platform.
-- Took over the development of the web service, integrating additional functionalities such as Text-to-Speech and Language Learning Models (LLMs).
+- Designed, developed and deployed the web dashboard using Plotly Dash to Google Cloud Platform.
+- Developed a part of the web service, integrating additional functionalities such as Text-to-Speech and Language Learning Models (LLMs).
 - Designed the overall architecture of the project, decoupled various parts of the codebase to enhance modularity and maintainability, created this readme.
 
 ## 🍿 Video on the Project
