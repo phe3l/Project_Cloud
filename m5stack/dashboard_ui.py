@@ -42,9 +42,8 @@ pending_data_label = M5Label('', x=245, y=0, color=0xffffff, font=FONT_MONT_10)
 error_label = M5Label('', x=10, y=16, color=0xffffff, font=FONT_MONT_10)
 
 # WiFi credentials for network connection
-#wifi_credentials = ('iot-unil', '4u6uch4hpY9pJ2f9')
-wifi_credentials = ('TP-Link_IoT_76C4', '49032826')
-flask_url = "http://192.168.0.100:8080"
+wifi_credentials = ('SSID', 'PASSWORD')
+flask_url = "https://final-project-service-c7loi7tmea-oa.a.run.app"
 
 # Initialize WLAN
 wlan = WLAN(STA_IF)
