@@ -178,6 +178,12 @@ To deploy the dashboard on Google Cloud Run:
 - Designed the overall architecture of the project, decoupled various parts of the codebase to enhance modularity and maintainability, created this readme.
 
 ## 🍿 Video on the Project
-The Video explaining the project can be accessed by following [this link](#). 
+
+The Video explaining the project can be accessed below.
+
+<a href="https://youtu.be/HAIiPcflFWI" target="_blank">
+  <img src="https://img.youtube.com/vi/HAIiPcflFWI/maxresdefault.jpg" width="50%" alt="Watch the video">
+</a>
+
 
 
