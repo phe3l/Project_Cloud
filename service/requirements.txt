@@ -3,4 +3,4 @@ requests
 google-cloud-bigquery
 vertexai
 google-cloud-texttospeech
-PIL
+Pillow
