@@ -179,7 +179,7 @@ To deploy the dashboard on Google Cloud Run:
 
 ## 🍿 Video on the Project
 
-The Video explaining the project can be accessed below.
+A video explaining our project can be accessed below.
 
 <a href="https://youtu.be/HAIiPcflFWI" target="_blank">
   <img src="https://img.youtube.com/vi/HAIiPcflFWI/maxresdefault.jpg" width="50%" alt="Watch the video">
