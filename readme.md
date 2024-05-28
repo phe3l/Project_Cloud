@@ -24,6 +24,7 @@ This project implements an indoor/outdoor weather monitoring system using an M5S
   - `weather_client.py`: Fetches outdoor weather data from external APIs.
   - `unit_tests/`: Tests for service reliability
 - `res`: Non code related assets for the whole project
+- `sql`: SQL script for database setup
 
 ## 🤖 M5Stack IoT Device
 
@@ -78,7 +79,7 @@ Below is a photo of the M5Stack device's dashboard, showcasing its capabilities 
    - `default_current_weather.png`
    - `default_future_weather.png`
    - `fetch-bigquery-history-image.png`
-3. Configure the Wi-Fi credentials in the `dashboard_ui.py` script.
+3. Configure the Wi-Fi credentials in the `dashboard_ui.py` script. Flask Url = [https://final-project-service-c7loi7tmea-oa.a.run.app](https://final-project-service-c7loi7tmea-oa.a.run.app)
 4. Run the `dashboard_ui.py` script to start the device interface.
 
 
