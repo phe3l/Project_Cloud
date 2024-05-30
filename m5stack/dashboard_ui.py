@@ -265,7 +265,6 @@ def send_data(ip):
     local_time = time.localtime()
     date_str = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
     time_str = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
-
     data = {
         "values": {
             "ip_address": ip,
@@ -289,6 +288,7 @@ def send_data(ip):
     finally:
         if response:
             response.close()
+        gc.collect() 
 
 def send_pending_data(ip, pending_data_buffer, reconnection_time):
     """
@@ -301,9 +301,9 @@ def send_pending_data(ip, pending_data_buffer, reconnection_time):
     for i, data_point in enumerate(pending_data_buffer):
         # Calculate the timestamp for the data point
         data_time = reconnection_time - ((num_data_points - 1 - i) * interval_between_data)
-        local_time = time.localtime(data_time)
-        date_str = '{:04d}-{:02d}-{:02d}'.format(local_time[0], local_time[1], local_time[2])
-        time_str = '{:02d}:{:02d}:{:02d}'.format(local_time[3], local_time[4], local_time[5])
+        pending_time = time.localtime(data_time)
+        date_str = '{:04d}-{:02d}-{:02d}'.format(pending_time[0], pending_time[1], pending_time[2])
+        time_str = '{:02d}:{:02d}:{:02d}'.format(pending_time[3], pending_time[4], pending_time[5])
 
         data = {
             "values": {
@@ -328,6 +328,7 @@ def send_pending_data(ip, pending_data_buffer, reconnection_time):
         finally:
             if response:
                 response.close()
+            gc.collect()
 
 def on_wifi_reconnected():
     """
@@ -574,6 +575,7 @@ def main_loop():
                 # Append sensor data to buffer if not sent after 120 seconds         
                 if now - data_buffer_last_sent >= 120:
                     outgoing_data_buffer.append((temp, hum, eco2))
+                    pending_data_label.set_text('{}'.format(len(outgoing_data_buffer)))
                     data_buffer_last_sent = now
                 
 
@@ -582,5 +584,6 @@ def main_loop():
 
         # Add a delay to avoid flooding the server
         time.sleep(5)
+        gc.collect() 
 
 main_loop()
