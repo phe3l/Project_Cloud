@@ -14,7 +14,7 @@ import pandas as pd
 import matplotlib.dates as mdates
 from io import BytesIO
 
-FONT_PATH = 'Mont-Regular.ttf'
+FONT_PATH = os.path.join(os.path.dirname(__file__), 'Mont-Regular.ttf')
 
 app = Flask(__name__)
 

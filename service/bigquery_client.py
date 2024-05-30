@@ -9,12 +9,15 @@ WEATHER_TABLE = os.getenv('WEATHER_TABLE')
 class BigQueryClient:
     def __init__(self):
         self.client = bigquery.Client(project=os.getenv('PROJECT_ID'))
-        
+            
     """Insert data into BigQuery."""
     def insert_into_bigquery(self, data: dict):
         try:
-            now = datetime.datetime.now()
-            data.update({'date': now.strftime('%Y-%m-%d'), 'time': now.strftime('%H:%M:%S')})
+            # Vérifiez si 'date' et 'time' sont déjà dans data
+            if 'date' not in data or 'time' not in data:
+                now = datetime.datetime.now()
+                data.setdefault('date', now.strftime('%Y-%m-%d'))
+                data.setdefault('time', now.strftime('%H:%M:%S'))
             
             columns = ", ".join([f"`{key}`" for key in data.keys()])
             values = ", ".join([f"'{value}'" if isinstance(value, str) else str(value) for value in data.values()])
@@ -27,7 +30,8 @@ class BigQueryClient:
             raise Exception(f"Failed to insert data: {e}")
         except Exception as e:
             raise Exception(f"An unexpected error occurred: {e}")
-    
+
+
     def fetch_weather_data(self):
         try:
             query = f"""SELECT * FROM `{PROJECT_ID}.{DATASET_NAME}.{WEATHER_TABLE}`
